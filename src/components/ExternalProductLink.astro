@@ -1,0 +1,19 @@
+---
+interface Props {
+  href: string;
+  label: string;
+  product: string;
+}
+
+const { href, label, product } = Astro.props;
+const destination = new URL(href);
+if (destination.protocol !== 'https:') {
+  throw new Error(`External product destination for ${product} must use HTTPS.`);
+}
+---
+<a class="product-link" href={destination.toString()} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens the ${product} website in a new tab)`}>
+  <span>{label}</span>
+  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+    <path d="M5 15 15 5M6 5h9v9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</a>

@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+import SiteHeader from '@/components/SiteHeader.astro';
+import SiteFooter from '@/components/SiteFooter.astro';
+import AEOHead from '@/components/AEOHead.astro';
+import type { EditionCode } from '@/data/site';
+
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface Props {
+  locale: EditionCode;
+  title: string;
+  description: string;
+  routePath?: string;
+  keywords?: string[];
+  ogType?: 'website' | 'article';
+  ogImage?: string;
+  ogImageAlt?: string;
+  pageSchema?: Record<string, unknown>[];
+  directAnswer?: string;
+  faqItems?: FAQItem[];
+  speakableSelectors?: string[];
+}
+
+const {
+  locale,
+  routePath = '',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <AEOHead {...Astro.props} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <SiteHeader locale={locale} routePath={routePath} />
+    <main id="main-content" tabindex="-1">
+      <slot />
+    </main>
+    <SiteFooter locale={locale} />
+  </body>
+</html>

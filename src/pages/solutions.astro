@@ -1,0 +1,51 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Practical Semrush and SEO workflows for education teams, editorial publishers, and content planners—organized around the work you need to do.';
+const pageSchema = [{ '@type': 'CollectionPage', name: 'SEO solutions for education and editorial teams', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="SEO solutions for education & publishing | Fatorati" description={description} routePath="solutions" keywords={['education SEO solutions', 'editorial SEO workflow', 'Semrush research process']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell solutions-page">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Solutions' }]} />
+    <header class="legal-hero">
+      <p class="eyebrow">Choose by the work</p>
+      <h1>Find a process<br /><em>that fits your team.</em></h1>
+      <p class="legal-hero__intro">Good SEO work starts with the reader and the task—not a dashboard. Explore practical workflows for education websites, editors, and content teams.</p>
+    </header>
+
+    <section class="solution-grid" aria-label="SEO workflows by team">
+      <a class="solution-card" href={localizedPath(locale, 'categories/education')}>
+        <span class="solution-card__number">01 / EDUCATION</span>
+        <h2>Help learners find accurate information</h2>
+        <p>Research student questions, plan useful program pages, and keep admissions facts under institutional review.</p>
+        <span class="solution-card__link">Education SEO guides <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="solution-card" href={localizedPath(locale, 'articles/semrush-editorial-workflow')}>
+        <span class="solution-card__number">02 / EDITORIAL</span>
+        <h2>Turn research into a writer-ready brief</h2>
+        <p>Build a repeatable process for discovery, search-intent review, sourcing, drafting, and editing.</p>
+        <span class="solution-card__link">Editorial workflow <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="solution-card" href={localizedPath(locale, 'articles/semrush-keyword-research-for-beginners')}>
+        <span class="solution-card__number">03 / CONTENT PLANNING</span>
+        <h2>Make keyword research actionable</h2>
+        <p>Use Semrush metrics as research clues, validate intent manually, then plan pages around real reader needs.</p>
+        <span class="solution-card__link">Keyword research guide <span aria-hidden="true">↗</span></span>
+      </a>
+    </section>
+
+    <section class="solution-note" aria-labelledby="solution-note-title">
+      <span class="solution-note__mark" aria-hidden="true">✳</span>
+      <div>
+        <p class="eyebrow">A useful guardrail</p>
+        <h2 id="solution-note-title">Tools help with research. <em>People own the result.</em></h2>
+        <p>Keyword metrics are estimates. Education facts need institutional confirmation, and every editorial team remains responsible for evidence, accuracy, and voice.</p>
+      </div>
+      <a class="text-link" href={localizedPath(locale, 'tools/semrush')}>See the Semrush profile <span aria-hidden="true">↗</span></a>
+    </section>
+  </article>
+</BaseLayout>

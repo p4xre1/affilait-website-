@@ -1,0 +1,17 @@
+name = "fatorati-me"
+compatibility_date = "2026-10-04"
+pages_build_output_dir = "./dist"
+
+[vars]
+APP_ENV = "development"
+SCAN_PERSISTENCE_ENABLED = "false"
+
+# Cloudflare Pages exposes a `preview` environment, used here for staging.
+# Do not add a Wrangler `env.staging`: Pages supports `preview` and `production`.
+[env.preview.vars]
+APP_ENV = "staging"
+SCAN_PERSISTENCE_ENABLED = "false"
+
+[env.production.vars]
+APP_ENV = "production"
+SCAN_PERSISTENCE_ENABLED = "false"

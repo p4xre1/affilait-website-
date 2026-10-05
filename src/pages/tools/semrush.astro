@@ -1,0 +1,208 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ExternalProductLink from '@/components/ExternalProductLink.astro';
+import ArticleDisclosure from '@/components/ArticleDisclosure.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import ComparisonTable from '@/components/ComparisonTable.astro';
+import ProsCons from '@/components/ProsCons.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'An independent, research-led Semrush profile for education and editorial teams: workflows it may support, trade-offs to consider, and details to verify.';
+const directAnswer = 'Semrush may be useful for teams that plan content and research search competition regularly. If you only need occasional checks on your own site, start with first-party reports and manual research before adding a paid toolkit.';
+const productId = 'https://fatorati.me/tools/semrush/#product';
+const pageSchema = [{
+  '@type': 'WebPage',
+  name: 'Semrush for education and editorial teams',
+  description,
+  inLanguage: edition.language,
+  about: { '@id': productId },
+}, {
+  '@type': 'Product',
+  '@id': productId,
+  name: 'Semrush',
+  url: 'https://www.semrush.com/',
+  brand: { '@type': 'Brand', name: 'Semrush' },
+  category: 'SEO and content research software',
+  description: 'A software product profiled by Fatorati using public product information. This profile does not claim hands-on testing or a performance rating.',
+}];
+const faqItems = [
+  {
+    question: 'Is this a hands-on Semrush review?',
+    answer: 'No. Fatorati’s profile is research-led and based on public product information and documentation; it does not claim private-account testing or firsthand results.',
+  },
+  {
+    question: 'Who may find Semrush useful?',
+    answer: 'It may suit teams with recurring keyword discovery, competitive research, and content-planning tasks. Smaller teams with occasional SEO needs can start with first-party reports and manual research.',
+  },
+  {
+    question: 'Does Fatorati publish current Semrush prices?',
+    answer: 'No. Plans, feature access, and prices can change, so check Semrush’s official pricing page for current details before subscribing.',
+  },
+];
+const comparison = [
+  {
+    product: 'Semrush toolkit',
+    bestFor: 'Teams with recurring keyword and competitor research needs',
+    standout: 'A connected set of SEO research workflows described in Semrush documentation',
+    keepInMind: 'Check the current plan, feature access, and usage limits before subscribing',
+  },
+  {
+    product: 'First-party data plus manual research',
+    bestFor: 'Small teams checking their own site or planning occasional topics',
+    standout: 'Pairs site performance data with live result checks and reader research',
+    keepInMind: 'Requires more manual work and does not provide the same competitor reports',
+  },
+  {
+    product: 'Specialist tools',
+    bestFor: 'Teams with one defined SEO task and an established tool stack',
+    standout: 'Can keep the workflow focused on a specific reporting or research need',
+    keepInMind: 'Separate services can add training, overlap, and coordination costs',
+  },
+];
+const pros = [
+  'Can bring several recurring keyword and competitive research tasks into one workflow',
+  'Country and topic databases can help teams define a market for research',
+  'Topic groups can give editors a starting point for a content plan',
+];
+const cons = [
+  'Search-volume and difficulty metrics are estimates, not traffic or ranking guarantees',
+  'Plan names, feature access, and usage limits can change over time',
+  'Smaller teams may not use enough of a broad toolkit to justify its cost',
+];
+---
+<BaseLayout locale={locale} title="Semrush profile for education & editorial teams | Fatorati" description={description} routePath="tools/semrush" keywords={['Semrush profile', 'Semrush for education', 'Semrush editorial workflow', 'SEO tool guide']} pageSchema={pageSchema} directAnswer={directAnswer} faqItems={faqItems} speakableSelectors={['.tool-profile-hero__copy h1', '.tool-profile-hero__intro', '.tool-profile-answer h2']}>
+  <article class="tool-profile shell">
+    <Breadcrumbs items={[
+      { label: 'Home', href: localizedPath(locale) },
+      { label: 'Semrush profile' },
+    ]} />
+
+    <section class="tool-profile-hero" aria-labelledby="tool-profile-title">
+      <div class="tool-profile-hero__copy">
+        <p class="eyebrow">Independent tool profile</p>
+        <h1 id="tool-profile-title">Semrush for education &amp; <em>editorial teams.</em></h1>
+        <p class="tool-profile-hero__intro">A research-led look at where Semrush may help with keyword discovery, education SEO, and publishing workflows—and what a tool cannot decide for your team.</p>
+        <div class="tool-profile-badges" aria-label="Review methodology">
+          <span>Based on public documentation</span>
+          <span>Not a hands-on test</span>
+          <span>No score or live price claims</span>
+        </div>
+        <div class="tool-profile-actions">
+          <ExternalProductLink href="https://www.semrush.com/" label="Explore Semrush" product="Semrush" />
+          <a class="text-link" href="#fit-and-tradeoffs">See the trade-offs <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+
+      <aside class="tool-summary-card" aria-label="Fatorati's Semrush summary">
+        <div class="tool-summary-card__brand">
+          <span class="tool-summary-card__mark" aria-hidden="true">S</span>
+          <div><span class="tool-summary-card__eyebrow">TOOL PROFILE</span><h2>Semrush</h2></div>
+          <span class="tool-summary-card__spark" aria-hidden="true">✳</span>
+        </div>
+        <p class="tool-summary-card__verdict">Worth exploring when your team has regular SEO research to do.</p>
+        <dl>
+          <div><dt>Could suit</dt><dd>Publishers, education teams, SEO practitioners</dd></div>
+          <div><dt>Research basis</dt><dd>Public product information</dd></div>
+          <div><dt>Current pricing</dt><dd><a href="https://www.semrush.com/prices/" target="_blank" rel="noopener noreferrer">Verify with Semrush ↗</a></dd></div>
+        </dl>
+        <p class="tool-summary-card__footnote">Features, prices, and plan limits can change. Confirm details with the provider.</p>
+      </aside>
+    </section>
+
+    <section class="short-answer tool-profile-answer" aria-labelledby="tool-answer-title">
+      <div class="short-answer__label"><span aria-hidden="true">✳</span> The short answer</div>
+      <h2 id="tool-answer-title">{directAnswer}</h2>
+    </section>
+
+    <ArticleDisclosure locale={locale} />
+
+    <section class="tool-capabilities" aria-labelledby="tool-capabilities-title">
+      <div class="section-heading section-heading--split">
+        <div><p class="eyebrow">Where to begin</p><h2 id="tool-capabilities-title">Start with the <em>work you do.</em></h2></div>
+        <p class="section-intro">A product list is less useful than a clear job. These guides show how research can support specific teams.</p>
+      </div>
+      <div class="tool-capability-grid">
+        <a class="tool-capability-card" href={localizedPath(locale, 'articles/semrush-keyword-research-for-beginners')}>
+          <span class="tool-capability-card__number">01 / DISCOVER</span>
+          <h3>Find and organize keyword ideas</h3>
+          <p>Use a seed topic to explore questions, check intent, and prepare an editorial brief.</p>
+          <span class="tool-capability-card__link">Read the workflow <span aria-hidden="true">↗</span></span>
+        </a>
+        <a class="tool-capability-card" href={localizedPath(locale, 'articles/semrush-for-education-seo')}>
+          <span class="tool-capability-card__number">02 / EDUCATE</span>
+          <h3>Plan useful education pages</h3>
+          <p>Research learner questions, then have the institution verify every important fact.</p>
+          <span class="tool-capability-card__link">Read the education guide <span aria-hidden="true">↗</span></span>
+        </a>
+        <a class="tool-capability-card" href={localizedPath(locale, 'articles/semrush-editorial-workflow')}>
+          <span class="tool-capability-card__number">03 / PUBLISH</span>
+          <h3>Support an editorial workflow</h3>
+          <p>Turn discovery into a useful brief without writing for a tool score.</p>
+          <span class="tool-capability-card__link">Read the editorial guide <span aria-hidden="true">↗</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="tool-comparison section-block" id="fit-and-tradeoffs" aria-labelledby="tool-comparison-title">
+      <div class="section-heading section-heading--compact">
+        <p class="eyebrow">Choose by workflow</p>
+        <h2 id="tool-comparison-title">Semrush or a <em>simpler approach?</em></h2>
+        <p>Compare the work each approach supports before comparing feature lists.</p>
+      </div>
+      <ComparisonTable rows={comparison} title="Semrush and alternative SEO research approaches" />
+    </section>
+
+    <div class="tool-pros-cons">
+      <ProsCons product="Semrush for recurring research" pros={pros} cons={cons} />
+    </div>
+
+    <section class="tool-verification" aria-labelledby="tool-verification-title">
+      <div>
+        <p class="eyebrow">Before you subscribe</p>
+        <h2 id="tool-verification-title">Check the details <em>that change.</em></h2>
+      </div>
+      <ul>
+        <li>Confirm which current plan includes the tools and limits your team needs.</li>
+        <li>Check the right country database for your audience and market.</li>
+        <li>Make sure the people who will use the reports have time to learn the workflow.</li>
+        <li>Compare total cost with the work your team will actually do—not a feature checklist.</li>
+      </ul>
+    </section>
+
+    <aside class="tool-profile-cta">
+      <div>
+        <p class="eyebrow eyebrow--light">Ready to verify it yourself?</p>
+        <h2>Check current plans and product details <em>at the source.</em></h2>
+        <p>Fatorati's Semrush links go directly to official pages and are not affiliate-tracked. Fatorati does not currently earn commission from them.</p>
+      </div>
+      <ExternalProductLink href="https://www.semrush.com/" label="Visit Semrush" product="Semrush" />
+    </aside>
+
+    <section class="tool-profile-sources" aria-labelledby="tool-sources-title">
+      <p class="eyebrow">Read the primary sources</p>
+      <h2 id="tool-sources-title">Official information &amp; further reading</h2>
+      <ul>
+        <li><a href="https://www.semrush.com/blog/how-to-use-semrush-keyword-research/" target="_blank" rel="noopener noreferrer">Semrush: keyword research workflow <span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://www.semrush.com/blog/higher-education-seo/" target="_blank" rel="noopener noreferrer">Semrush: higher education SEO <span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://www.semrush.com/blog/content-strategy-workflow/" target="_blank" rel="noopener noreferrer">Semrush: content strategy workflow <span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://www.semrush.com/prices/" target="_blank" rel="noopener noreferrer">Semrush: current plans and pricing <span aria-hidden="true">↗</span></a></li>
+      </ul>
+      <p class="tool-profile-sources__note">This page summarizes public product information. It is not a hands-on test, a guarantee of performance, or a substitute for checking current terms directly.</p>
+    </section>
+
+    <section class="tool-profile-faq" aria-labelledby="tool-faq-title">
+      <p class="eyebrow">Clear answers</p>
+      <h2 id="tool-faq-title">Common questions about this profile</h2>
+      <div class="tool-profile-faq__list">
+        {faqItems.map((item) => (
+          <article class="tool-profile-faq__item">
+            <h3>{item.question}</h3>
+            <p>{item.answer}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  </article>
+</BaseLayout>

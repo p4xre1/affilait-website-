@@ -1,0 +1,31 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCategory, localizedPath, type EditionCode, getEdition, formatDate } from '@/data/site';
+
+interface Props {
+  article: CollectionEntry<'articles'>;
+  locale: EditionCode;
+  featured?: boolean;
+}
+
+const { article, locale, featured = false } = Astro.props;
+const category = getCategory(article.data.category);
+const edition = getEdition(locale);
+const date = article.data.updatedAt ?? article.data.publishedAt;
+const articleSlug = article.id.replace(/\.md$/, '');
+const searchText = `${article.data.title} ${category.title} ${article.data.description}`.toLowerCase();
+---
+<article class:list={['article-card', featured && 'article-card--featured']} data-article-card data-search-text={searchText} data-category={category.slug}>
+  <div class="article-card__topline">
+    <a class="category-label" href={localizedPath(locale, `categories/${category.slug}`)}>{category.title}</a>
+    <span class="article-card__readtime">{article.data.readTime} min read</span>
+  </div>
+  <h3><a href={localizedPath(locale, `articles/${articleSlug}`)}>{article.data.title}</a></h3>
+  <p>{article.data.description}</p>
+  <div class="article-card__footer">
+    <time datetime={date.toISOString()}>{formatDate(date, edition)}</time>
+    <a class="text-link" href={localizedPath(locale, `articles/${articleSlug}`)} aria-label={`Read: ${article.data.title}`}>
+      Read guide <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</article>

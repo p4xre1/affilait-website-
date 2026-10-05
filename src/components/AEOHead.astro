@@ -1,0 +1,190 @@
+---
+import { CATEGORIES, EDITIONS, SITE, absolutePageUrl, type EditionCode } from '@/data/site';
+
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface Props {
+  locale: EditionCode;
+  title: string;
+  description: string;
+  routePath?: string;
+  keywords?: string[];
+  ogType?: 'website' | 'article';
+  ogImage?: string;
+  ogImageAlt?: string;
+  pageSchema?: Record<string, unknown>[];
+  directAnswer?: string;
+  faqItems?: FAQItem[];
+  speakableSelectors?: string[];
+}
+
+const {
+  locale,
+  title,
+  description,
+  routePath = '',
+  keywords = [],
+  ogType = 'website',
+  ogImage = SITE.socialImage,
+  ogImageAlt = 'Fatorati free website SEO scan with sitemap checks and Google PageSpeed Insights.',
+  pageSchema = [],
+  directAnswer = description,
+  faqItems = [],
+  speakableSelectors = [],
+} = Astro.props;
+const edition = EDITIONS[locale];
+const canonical = absolutePageUrl(locale, routePath);
+const socialImage = new URL(ogImage, SITE.url).toString();
+const defaultKeywords = ['free website audit', 'website SEO checker', 'technical SEO scan', 'Fatorati'];
+const organization = {
+  '@type': 'Organization',
+  '@id': `${SITE.url}/#organization`,
+  name: SITE.name,
+  url: SITE.url,
+  logo: {
+    '@type': 'ImageObject',
+    url: `${SITE.url}/brand-mark.png`,
+    contentUrl: `${SITE.url}/brand-mark.png`,
+    width: 512,
+    height: 512,
+  },
+  description: SITE.description,
+};
+const website = {
+  '@type': 'WebSite',
+  '@id': `${SITE.url}/#website`,
+  url: SITE.url,
+  name: SITE.name,
+  description: SITE.description,
+  publisher: { '@id': `${SITE.url}/#organization` },
+  inLanguage: edition.language,
+};
+const suppliedWebPage = pageSchema.find((node) => node['@type'] === 'WebPage');
+const webPage = {
+  ...suppliedWebPage,
+  '@type': 'WebPage',
+  '@id': `${canonical}#webpage`,
+  url: canonical,
+  name: title,
+  description,
+  abstract: directAnswer,
+  isPartOf: { '@id': `${SITE.url}/#website` },
+  publisher: { '@id': `${SITE.url}/#organization` },
+  inLanguage: edition.language,
+  ...(speakableSelectors.length > 0 ? {
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: speakableSelectors,
+    },
+  } : {}),
+};
+
+function stripSiteSuffix(value: string): string {
+  return value
+    .replace(/\s*\|\s*Fatorati\s*$/i, '')
+    .replace(/^Fatorati\s*[—–-]\s*/i, '')
+    .trim();
+}
+
+function makeBreadcrumbSchema() {
+  if (!routePath) return null;
+  const route = routePath.split('/').filter(Boolean);
+  const items: { name: string; url: string }[] = [
+    { name: 'Home', url: absolutePageUrl(locale) },
+  ];
+
+  if (route[0] === 'categories' && route[1]) {
+    const category = CATEGORIES.find((item) => item.slug === route[1]);
+    items.push({ name: 'Articles', url: absolutePageUrl(locale, 'articles') });
+    items.push({ name: category?.title ?? stripSiteSuffix(title), url: canonical });
+  } else if (route[0] === 'articles' && route.length > 1) {
+    items.push({ name: 'Articles', url: absolutePageUrl(locale, 'articles') });
+    items.push({ name: stripSiteSuffix(title), url: canonical });
+  } else if (route[0] === 'tools') {
+    items.push({ name: 'Semrush profile', url: canonical });
+  } else {
+    items.push({ name: stripSiteSuffix(title), url: canonical });
+  }
+
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+const hasBreadcrumbSchema = pageSchema.some((node) => node['@type'] === 'BreadcrumbList');
+const generatedBreadcrumbSchema = hasBreadcrumbSchema ? null : makeBreadcrumbSchema();
+const faqSchema = faqItems.length > 0 ? {
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
+    },
+  })),
+} : null;
+const additionalPageSchema = pageSchema.filter((node) => node !== suppliedWebPage);
+const structuredData = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    organization,
+    website,
+    webPage,
+    ...(generatedBreadcrumbSchema ? [generatedBreadcrumbSchema] : []),
+    ...additionalPageSchema,
+    ...(faqSchema ? [faqSchema] : []),
+  ],
+}).replaceAll('<', '\\u003c');
+const keywordsContent = [...new Set([...keywords, ...defaultKeywords])].join(', ');
+---
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#f8faf8" />
+<script is:inline src="/theme-init.js"></script>
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta name="format-detection" content="telephone=no" />
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="keywords" content={keywordsContent} />
+<meta name="author" content={SITE.author} />
+<meta name="publisher" content={SITE.name} />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="bingbot" content="index, follow, max-image-preview:large" />
+
+<link rel="canonical" href={canonical} />
+<link rel="sitemap" type="application/xml" href={`${SITE.url}/sitemap.xml`} />
+<link rel="alternate" type="application/rss+xml" title="Fatorati article feed" href="/feed.xml" />
+<link rel="alternate" type="text/plain" title="Fatorati AI-readable content index" href="/llms.txt" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={socialImage} />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={ogImageAlt} />
+<meta property="og:site_name" content={SITE.name} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={socialImage} />
+<meta name="twitter:image:alt" content={ogImageAlt} />
+
+<script type="application/ld+json" set:html={structuredData} />

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f4f4ed"/>
+  <circle cx="1080" cy="60" r="310" fill="#e1efc7"/>
+  <circle cx="1080" cy="60" r="220" fill="#173d34"/>
+  <rect x="70" y="70" width="1060" height="490" rx="34" fill="#173d34"/>
+  <rect x="116" y="114" width="64" height="64" rx="19" fill="#d9f47b"/>
+  <path d="M125 135c9-3 18-2 30 6v28c-12-8-21-9-30-6v-28Z" fill="none" stroke="#173d34" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M155 141c12-8 21-9 30-6v28c-9-3-18-2-30 6v-28Z" fill="none" stroke="#173d34" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m165 119 1.8 4.2 4.2 1.8-4.2 1.8-1.8 4.2-1.8-4.2-4.2-1.8 4.2-1.8 1.8-4.2Z" fill="#f47c5d"/>
+  <text x="202" y="158" fill="#f4f4ed" font-family="Inter, Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="0">fatorati</text>
+  <text x="118" y="292" fill="#d9f47b" font-family="Inter, Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="4">FREE WEBSITE SEO SCAN</text>
+  <text x="112" y="378" fill="#ffffff" font-family="Inter, Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="0">Find the issues.</text>
+  <text x="112" y="464" fill="#ffffff" font-family="Inter, Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="0">Know what to fix next.</text>
+  <path d="M1004 391h94m-36-36 36 36-36 36" fill="none" stroke="#f47c5d" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="120" y="523" fill="#c0cdc2" font-family="Inter, Arial, Helvetica, sans-serif" font-size="24">Sitemap checks + Google PageSpeed Insights.</text>
+</svg>

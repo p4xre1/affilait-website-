@@ -1,0 +1,45 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Plain-language terms for using Fatorati’s free website audit, SEO education, editorial guides, and external links.';
+const directAnswer = 'Fatorati offers a free technical website snapshot and educational guides. Scan results are not a Google ranking score, a complete site audit, or a guarantee of results. Fatorati does not sell subscriptions; purchases through third-party providers are governed by their terms.';
+const pageSchema = [{ '@type': 'WebPage', name: 'Fatorati terms of use', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="Terms of use | Fatorati" description={description} directAnswer={directAnswer} routePath="terms" keywords={['Fatorati terms of use', 'website terms', 'editorial content']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro', '.legal-prose h2']}>
+  <article class="legal-page shell">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Terms of use' }]} />
+    <header class="legal-hero legal-hero--compact">
+      <p class="eyebrow">A clear starting point</p>
+      <h1>Use the site<br /><em>with care.</em></h1>
+      <p class="legal-hero__intro">These plain-language terms explain what Fatorati offers, what to expect from our guides, and how external services fit in.</p>
+      <p class="policy-updated">Last updated: <time datetime="2026-10-04">October 4, 2026</time></p>
+    </header>
+
+    <div class="legal-content-grid">
+      <aside class="legal-side-note"><span class="legal-side-note__mark">01</span><p>Read. Research. Decide for yourself.</p></aside>
+      <div class="prose legal-prose">
+        <h2>What Fatorati provides</h2>
+        <p>Fatorati publishes a free website checker alongside educational material about SEO research, content planning, and editorial workflows. A scan checks a limited set of public sitemap pages and runs PageSpeed Insights only on the URL entered. Its findings are general information, not a guarantee of rankings, traffic, enrollment, revenue, or any particular outcome. Tool features, availability, and plan details can change, so check the provider’s current documentation before making a decision.</p>
+
+        <h2>Editorial independence and future affiliate links</h2>
+        <p>Fatorati’s current Semrush links go directly to official pages and are not affiliate-tracked; no commission is currently earned from them. If an approved affiliate link is added in the future, we will disclose it in context and in our <a href={localizedPath(locale, 'affiliate-disclosure')}>affiliate disclosure</a>. Any future commission would not purchase a favorable conclusion or determine our editorial guidance.</p>
+
+        <h2>External services and purchases</h2>
+        <p>Links to Semrush or other third-party services take you to sites that Fatorati does not control. Their own terms, privacy notices, prices, billing, and cancellation procedures apply. The current public Fatorati site does not offer paid memberships or subscriptions, so there is no Fatorati subscription to cancel through this website.</p>
+
+        <h2>Using this website</h2>
+        <p>You may browse and link to Fatorati for lawful purposes. Do not interfere with the site’s operation, attempt to bypass access controls, or use it in a way that harms its security or availability. Access to the private editorial dashboard is limited to approved editors.</p>
+
+        <h2>Content and changes</h2>
+        <p>We aim to keep our material useful and correct errors when we become aware of them, but we cannot promise that every page will always be complete or current. We may update, move, or remove content as the publication develops. Nothing on this site transfers ownership of Fatorati’s name, branding, or original editorial material.</p>
+
+        <h2>Questions</h2>
+        <p>For a question about these terms, contact <a href="mailto:hello@fatorati.me?subject=Terms%20question">hello@fatorati.me</a>. For information about site data and browser storage, read our <a href={localizedPath(locale, 'privacy')}>privacy policy</a> and <a href={localizedPath(locale, 'cookies')}>cookie and local-storage notice</a>.</p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

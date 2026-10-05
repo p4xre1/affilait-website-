@@ -1,0 +1,46 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Learn how Fatorati’s free website scan works, how its score is calculated, and where optional SEO tools fit.';
+const pageSchema = [{ '@type': 'AboutPage', name: 'About Fatorati', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="About Fatorati" description={description} routePath="about" keywords={['about Fatorati', 'website scan methodology', 'technical SEO checks']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'About Fatorati' }]} />
+    <header class="legal-hero">
+      <p class="eyebrow">An independent point of view</p>
+      <h1>Free checks first.<br /><em>Keep the judgment.</em></h1>
+      <p class="legal-hero__intro">Fatorati gives site owners a clear technical snapshot, a transparent score, and practical next steps—without pretending a paid tool can fix a website by itself.</p>
+    </header>
+
+    <div class="legal-content-grid">
+      <aside class="legal-side-note"><span class="legal-side-note__mark">F.</span><p>Useful checks.<br />Human judgment.</p></aside>
+      <div class="prose legal-prose">
+        <h2>An independent website check</h2>
+        <p>Fatorati scans public HTML pages for common technical basics and returns a readable list of findings. It checks up to 100 same-site URLs discovered in a sitemap and runs Google PageSpeed Insights on the one URL a visitor submits. A bounded set of page titles and headings also supports a separate, crawl-derived topic and question map; those inferences are not observed search queries or search-demand data. The two score sources are shown separately so readers can see what was actually measured.</p>
+        <p>Fatorati is independent. We are not operated, owned, or endorsed by Google or Semrush. The scan is a starting point, not a complete review of every search factor and not a guarantee of rankings, traffic, or business results.</p>
+
+        <h2>How the score works</h2>
+        <p>The Fatorati score is a weighted summary of the page checks listed in the report, including response status, HTTPS, page titles, meta descriptions, headings, canonicals, mobile viewport, document language, indexability, image alt attributes, and basic JSON-LD syntax when structured data is present. Google’s mobile Lighthouse category scores appear separately. Text-length checks are labeled as heuristics, not search-engine rules. The JSON-LD check verifies only basic JSON parsing, not Schema.org correctness, rich-result eligibility, or AI-search inclusion.</p>
+        <ul>
+          <li>We report which pages were checked and disclose the 100-URL cap.</li>
+          <li>We remove query strings and fragments before scanning, and we do not store reports in a database.</li>
+          <li>We separate issues that a site owner or developer must fix from tools that can help research or monitor SEO.</li>
+          <li>We do not describe an estimate as a Google ranking score or promise an outcome.</li>
+        </ul>
+
+        <h2>Where optional tools and affiliate links fit</h2>
+        <p>Semrush is an optional tool for keyword research, visibility monitoring, and recurring audits; it does not automatically edit or repair a website. Fatorati does not sell Semrush. The current link goes directly to Semrush and is not affiliate-tracked. If an approved affiliate link is added later, we will disclose it in context and in our <a href={localizedPath(locale, 'affiliate-disclosure')}>affiliate disclosure</a>.</p>
+
+        <h2>What we will not pretend</h2>
+        <p>A scan is not a full rendering or accessibility audit, a security assessment, or an inspection of every search-ranking factor. A PageSpeed Insights result is a Lighthouse lab report for one submitted URL, not a promise about real-user experience or rankings. We explain known limits instead of turning a snapshot into a guarantee.</p>
+
+        <div class="legal-callout"><span aria-hidden="true">✳</span><p>Have a correction, a question, or a website issue we should explain? <a href={localizedPath(locale, 'contact')}>Talk to the editors.</a></p></div>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

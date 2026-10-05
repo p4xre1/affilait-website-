@@ -1,0 +1,49 @@
+---
+import LogoMark from '@/components/LogoMark.astro';
+import { localizedPath, type EditionCode } from '@/data/site';
+
+interface Props {
+  locale: EditionCode;
+}
+
+const { locale } = Astro.props;
+const year = new Date().getUTCFullYear();
+---
+<footer class="site-footer">
+  <div class="footer-main shell">
+    <div class="footer-brand-block">
+      <a class="wordmark wordmark--footer" href={localizedPath(locale)} aria-label="Fatorati home">
+        <span class="wordmark-mark" aria-hidden="true">
+          <LogoMark />
+        </span>
+        <span>fatorati<span class="wordmark-period">.</span></span>
+      </a>
+      <p>Free website checks and honest SEO next steps.</p>
+    </div>
+    <div class="footer-column">
+      <h2>Explore</h2>
+      <a href={localizedPath(locale, 'categories/education')}>Education</a>
+      <a href={localizedPath(locale, 'about')}>About Fatorati</a>
+      <a href={localizedPath(locale, 'solutions')}>Solutions</a>
+      <a href={localizedPath(locale, 'reviews')}>Reviews</a>
+      <a href={localizedPath(locale, 'articles')}>Articles</a>
+    </div>
+    <div class="footer-column">
+      <h2>Good to know</h2>
+      <a href={localizedPath(locale, 'affiliate-disclosure')}>Affiliate disclosure</a>
+      <a href={localizedPath(locale, 'privacy')}>Privacy</a>
+      <a href={localizedPath(locale, 'cookies')}>Cookies &amp; local storage</a>
+      <a href={localizedPath(locale, 'terms')}>Terms of use</a>
+      <a href={localizedPath(locale, 'contact')}>Contact</a>
+      <a href="/feed.xml" type="application/rss+xml">RSS feed</a>
+    </div>
+    <div class="footer-note">
+      <span class="footer-spark" aria-hidden="true">✳</span>
+      <p>Independent by design. Every recommendation comes with the why, the caveats, and room to decide for yourself.</p>
+    </div>
+  </div>
+  <div class="footer-bottom shell">
+    <span>© {year} Fatorati. All rights reserved.</span>
+    <span>Made for more confident choices.</span>
+  </div>
+</footer>

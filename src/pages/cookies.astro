@@ -1,0 +1,42 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Learn how Fatorati handles cookies, the locally saved theme preference, and third-party provider technologies.';
+const directAnswer = 'Fatorati does not install advertising or analytics cookies. The light-or-dark theme choice is saved in browser local storage, not a cookie. Hosting, security, or third-party services may use their own necessary technologies under their settings and policies.';
+const pageSchema = [{ '@type': 'WebPage', name: 'Fatorati cookie and local-storage notice', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="Cookies & local storage | Fatorati" description={description} directAnswer={directAnswer} routePath="cookies" keywords={['Fatorati cookies', 'local storage', 'privacy settings']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro', '.legal-prose h2']}>
+  <article class="legal-page shell">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Cookies & local storage' }]} />
+    <header class="legal-hero legal-hero--compact">
+      <p class="eyebrow">Small files and browser preferences</p>
+      <h1>Your browser,<br /><em>your choice.</em></h1>
+      <p class="legal-hero__intro">Here is what the public Fatorati site stores, what it does not use for tracking, and what may happen when you follow an external link.</p>
+      <p class="policy-updated">Last updated: <time datetime="2026-10-04">October 4, 2026</time></p>
+    </header>
+
+    <div class="legal-content-grid">
+      <aside class="legal-side-note"><span class="legal-side-note__mark">02</span><p>No ad or analytics cookies in this version.</p></aside>
+      <div class="prose legal-prose">
+        <h2>Fatorati’s theme preference</h2>
+        <p>If you change the light-or-dark appearance, the site can save a single <code>fatorati-theme</code> preference in your browser’s local storage. Local storage is kept by your browser for this site; it is not a cookie and is not used for advertising, analytics, or cross-site tracking. You can clear it through your browser’s site-data settings.</p>
+
+        <h2>Cookies and tracking</h2>
+        <p>The current Fatorati public site does not install advertising or analytics cookies, tracking pixels, or third-party analytics scripts. It does not use third-party ad networks. There is no Fatorati advertising-cookie preference to withdraw in this version of the site.</p>
+
+        <h2>Hosting, security, and the editorial dashboard</h2>
+        <p>Cloudflare and other infrastructure providers may use necessary technical cookies or similar mechanisms to deliver, secure, or administer their services. The private editor sign-in uses Cloudflare Access, which may rely on session and security technologies. These are governed by the provider’s settings and policies; they are not used by Fatorati for advertising analytics.</p>
+
+        <h2>Links to other websites</h2>
+        <p>If you follow an external link, the destination may use its own cookies or similar technologies. Fatorati does not control those technologies. Review the destination’s privacy or cookie notice before deciding whether to use its service.</p>
+
+        <h2>More about privacy</h2>
+        <p>For details about public-site requests, editorial access, and external links, read our <a href={localizedPath(locale, 'privacy')}>privacy policy</a>. For a question about this notice, contact <a href="mailto:hello@fatorati.me?subject=Cookie%20question">hello@fatorati.me</a>.</p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

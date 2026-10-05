@@ -1,0 +1,165 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ExternalProductLink from '@/components/ExternalProductLink.astro';
+import ArticleDisclosure from '@/components/ArticleDisclosure.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import ComparisonTable from '@/components/ComparisonTable.astro';
+import ProsCons from '@/components/ProsCons.astro';
+import { SITE, absolutePageUrl, formatDate, getCategory, getEdition, localizedPath } from '@/data/site';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles.map((article) => ({
+    params: { slug: article.id.replace(/\.md$/, '') },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const category = getCategory(article.data.category);
+const articleSlug = article.id.replace(/\.md$/, '');
+const routePath = `articles/${articleSlug}`;
+const canonical = absolutePageUrl(locale, routePath);
+const publishedDate = article.data.publishedAt.toISOString();
+const modifiedDate = (article.data.updatedAt ?? article.data.publishedAt).toISOString();
+const { Content, headings } = await render(article);
+const articleSchema = {
+  '@type': 'Article',
+  '@id': `${canonical}#article`,
+  headline: article.data.title,
+  description: article.data.description,
+  mainEntityOfPage: { '@id': `${canonical}#webpage` },
+  image: `${SITE.url}${SITE.socialImage}`,
+  datePublished: publishedDate,
+  dateModified: modifiedDate,
+  author: {
+    '@type': 'Organization',
+    name: SITE.author,
+    url: absolutePageUrl(locale, 'about'),
+  },
+  publisher: { '@id': `${SITE.url}/#organization` },
+  articleSection: category.title,
+  inLanguage: edition.language,
+  isAccessibleForFree: true,
+};
+const breadcrumbSchema = {
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: absolutePageUrl(locale) },
+    { '@type': 'ListItem', position: 2, name: 'Articles', item: absolutePageUrl(locale, 'articles') },
+    { '@type': 'ListItem', position: 3, name: category.title, item: absolutePageUrl(locale, `categories/${category.slug}`) },
+    { '@type': 'ListItem', position: 4, name: article.data.title, item: canonical },
+  ],
+};
+const stepHeadings = headings.filter((heading) => heading.depth === 2 && /^(?:\d+[.)]?\s+|stage\s+\d+\s*:\s*)/i.test(heading.text));
+const howToSchema = stepHeadings.length >= 3 ? {
+  '@type': 'HowTo',
+  name: `How to: ${article.data.title}`,
+  description: article.data.shortAnswer,
+  step: stepHeadings.map((heading, index) => ({
+    '@type': 'HowToStep',
+    position: index + 1,
+    name: heading.text,
+    url: `${canonical}#${heading.slug}`,
+  })),
+} : null;
+const faqItems = articleSlug === 'semrush-keyword-research-for-beginners' ? [
+  {
+    question: 'Should I choose the highest-volume keyword?',
+    answer: 'Not automatically. Relevance, intent, competition, and your ability to provide a better answer matter too. A smaller, highly relevant question can be more useful than a broad phrase that attracts the wrong audience.',
+  },
+  {
+    question: 'Should I create one page for every keyword?',
+    answer: 'No. Group related phrases only when the same page can answer the underlying need well. Creating thin pages just to target small wording variations can make a site less helpful.',
+  },
+] : [];
+const pageSchema = [articleSchema, breadcrumbSchema, ...(howToSchema ? [howToSchema] : [])];
+---
+<BaseLayout locale={locale} title={`${article.data.title} | Fatorati`} description={article.data.description} routePath={routePath} keywords={[category.title, 'Semrush tutorial', 'SEO guide']} ogType="article" pageSchema={pageSchema} directAnswer={article.data.shortAnswer} faqItems={faqItems} speakableSelectors={['.article-header h1', '.article-deck', '.short-answer h2']}>
+  <article class="article-page shell">
+    <Breadcrumbs items={[
+      { label: 'Home', href: localizedPath(locale) },
+      { label: 'Articles', href: localizedPath(locale, 'articles') },
+      { label: category.title, href: localizedPath(locale, `categories/${category.slug}`) },
+      { label: article.data.title },
+    ]} />
+
+    <header class="article-header">
+      <div class="article-header__meta">
+        <a class="category-label" href={localizedPath(locale, `categories/${category.slug}`)}>{category.title}</a>
+        <span class="meta-divider" aria-hidden="true"></span>
+      </div>
+      <h1>{article.data.title}</h1>
+      <p class="article-deck">{article.data.description}</p>
+      <div class="article-byline">
+        <span class="byline-avatar" aria-hidden="true">F</span>
+        <span>By <strong>Fatorati editors</strong></span>
+        <span class="meta-divider" aria-hidden="true"></span>
+        <time datetime={article.data.publishedAt.toISOString()}>{formatDate(article.data.publishedAt, edition)}</time>
+        <span class="meta-divider" aria-hidden="true"></span>
+        <span>{article.data.readTime} min read</span>
+      </div>
+    </header>
+
+    <div class="article-layout">
+      <aside class="article-rail" aria-label="Article details">
+        <span class="article-rail__label">FIELD GUIDE</span>
+        <span class="article-rail__number">{category.number}</span>
+        <span class="article-rail__rule"></span>
+        <a href={localizedPath(locale, 'affiliate-disclosure')}>Link disclosure</a>
+      </aside>
+
+      <div class="article-main-column">
+        <section class="short-answer" aria-labelledby="short-answer-title">
+          <div class="short-answer__label"><span aria-hidden="true">✳</span> The short answer</div>
+          <h2 id="short-answer-title">{article.data.shortAnswer}</h2>
+        </section>
+
+        <ArticleDisclosure locale={locale} />
+
+        <section class="comparison-section" aria-labelledby="comparison-title">
+          <div class="section-heading section-heading--compact">
+            <p class="eyebrow">Side by side</p>
+            <h2 id="comparison-title">The quick comparison</h2>
+            <p>Start with what matters to you. Then look closely at the caveats.</p>
+          </div>
+          <ComparisonTable rows={article.data.comparison} title={`${article.data.title} comparison`} />
+        </section>
+
+        <ProsCons product={article.data.topPick} pros={article.data.pros} cons={article.data.cons} />
+
+        <aside class="product-cta" aria-label={`Visit ${article.data.productLink.product}`}>
+          <div class="product-cta__copy">
+            <p class="eyebrow">Want to dig deeper?</p>
+            <h2>See the details at the source.</h2>
+            <p>Check current features, plan access, and terms on the provider's official site.</p>
+          </div>
+          <ExternalProductLink href={article.data.productLink.href} label={article.data.productLink.label} product={article.data.productLink.product} />
+        </aside>
+
+        <div class="markdown-content">
+          <Content />
+        </div>
+
+        {article.data.sources.length > 0 && (
+          <section class="article-sources" aria-labelledby="sources-title">
+            <p class="eyebrow">Go to the source</p>
+            <h2 id="sources-title">Sources & further reading</h2>
+            <p>We prioritize primary sources and official product documentation. Plans, features, and data limits can change; verify current details directly.</p>
+            <ul>
+              {article.data.sources.map((source) => <li><a href={source.href} target="_blank" rel="noopener noreferrer">{source.label}<span aria-hidden="true"> ↗</span></a></li>)}
+            </ul>
+          </section>
+        )}
+
+        <div class="article-signoff">
+          <span class="article-signoff__mark" aria-hidden="true">F.</span>
+          <p><strong>Good research, on your terms.</strong><br />Questions or a correction? <a href={localizedPath(locale, 'contact')}>Get in touch with the editors.</a></p>
+        </div>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

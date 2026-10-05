@@ -1,0 +1,42 @@
+---
+interface ComparisonRow {
+  product: string;
+  bestFor: string;
+  standout: string;
+  keepInMind: string;
+}
+
+interface Props {
+  rows: ComparisonRow[];
+  title: string;
+}
+
+const { rows, title } = Astro.props;
+---
+<div class="comparison-table-wrap" role="region" aria-label={`${title} comparison`} tabindex="0">
+  <table class="comparison-table">
+    <caption>{title}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Option</th>
+        <th scope="col">Best for</th>
+        <th scope="col">What stands out</th>
+        <th scope="col">Keep in mind</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row, index) => (
+        <tr class={index === 0 ? 'comparison-table__featured' : undefined}>
+          <th scope="row">
+            {index === 0 && <span class="table-pick-label">Our lead pick</span>}
+            <span class="table-product-name">{row.product}</span>
+          </th>
+          <td data-label="Best for">{row.bestFor}</td>
+          <td data-label="What stands out">{row.standout}</td>
+          <td data-label="Keep in mind">{row.keepInMind}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<p class="table-note">Tool features, plan access, and data coverage can change. Check the provider's current information before subscribing.</p>

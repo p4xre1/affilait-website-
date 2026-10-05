@@ -1,0 +1,11 @@
+# Public, English-language content is crawlable.
+# Machine-readable index: https://fatorati.me/llms.txt
+# AI usage guidance: https://fatorati.me/ai.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /api/scan
+
+Sitemap: https://fatorati.me/sitemap.xml
+Sitemap: https://fatorati.me/ai-sitemap.xml

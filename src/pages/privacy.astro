@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Read how Fatorati handles website scans, browser storage, affiliate links, Cloudflare Access, and private editorial publishing.';
+const pageSchema = [{ '@type': 'WebPage', name: 'Fatorati privacy policy', inLanguage: edition.language }];
+---
+  <BaseLayout locale={locale} title="Privacy | Fatorati" description={description} directAnswer="The Fatorati scanner checks public page metadata and headings, sends the submitted URL to Google PageSpeed Insights, returns a crawl-derived topic and question map, and does not save scan results in a database. Hosting providers may process request and security logs." routePath="privacy" keywords={['Fatorati privacy policy', 'website scan privacy', 'cookies']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Privacy' }]} />
+    <header class="legal-hero legal-hero--compact">
+      <p class="eyebrow">Plain-language policy</p>
+      <h1>Your privacy, <em>plainly.</em></h1>
+      <p class="legal-hero__intro">The public Fatorati site offers a free website checker with no analytics or advertising pixels. The private editorial dashboard uses Cloudflare Access and a server-side GitHub connection.</p>
+      <p class="policy-updated">Last updated: <time datetime="2026-10-05">October 5, 2026</time></p>
+    </header>
+
+    <div class="legal-content-grid">
+      <aside class="legal-side-note"><span class="legal-side-note__mark">01</span><p>What happens when you visit.</p></aside>
+      <div class="prose legal-prose">
+        <h2>Public site visits</h2>
+        <p>There are no public reader accounts, comment forms, newsletter sign-ups, or payment forms in this version of Fatorati. The scanner asks only for a public website URL and confirmation that you own the site or have permission to check it. This codebase does not install analytics, advertising trackers, or tracking pixels.</p>
+        <p>Our hosting and security providers may process basic request information to deliver and protect the site. Depending on their settings, that can include an IP address, date and time, browser or device information, and the page requested. Their own privacy, security, and retention practices apply to that processing.</p>
+
+        <h2>Website scanner</h2>
+        <p>When you start a scan, Fatorati’s Pages Function requests the submitted public page and, when available, up to 100 same-site URLs from its XML sitemap. It checks public page markup and sends the submitted URL to Google PageSpeed Insights for a mobile Lighthouse report. A bounded set of page titles and at most 18 H1–H3 headings per page is returned to your browser for a crawl-derived topic and question map; no more than six question patterns per page are analyzed. Those labels are inferred from page content; they are not observed search queries or evidence of search demand. Query strings and fragments are removed before scanning. Do not submit private preview sites, URLs containing sensitive information, or pages you are not authorized to test.</p>
+        <p>Fatorati does not save scan URLs or reports to a database, and no Search Console, analytics, ranking, SERP, keyword-volume, or difficulty provider is connected to this report. The scan is processed to return results to your browser, and short-lived in-memory request counters may be used to limit automated abuse. Google receives the submitted page URL for PageSpeed Insights and processes it under Google’s own service terms and privacy policy. Cloudflare and other hosting providers may process connection and security logs under their own policies.</p>
+
+        <h2>Editorial dashboard and sign-in</h2>
+        <p>The <code>/admin/</code> dashboard is restricted to approved editors through Cloudflare Access. Fatorati's Pages Functions verify the Access identity and allowed email before showing article content or accepting changes. Cloudflare Access processes sign-in details, account identity, and session or security information under the configuration chosen by the site operator. Fatorati does not operate a separate password database for dashboard users.</p>
+        <p>When an approved editor saves an article, the Markdown source and commit details are sent from the server to the configured GitHub repository. A GitHub token is held as a Cloudflare server-side secret and is never sent to the browser. Cloudflare and GitHub may process security logs and account information according to their own policies. Editors should not place sensitive personal information in article drafts unless it is necessary and properly authorized.</p>
+
+        <h2>Theme preference and technical storage</h2>
+        <p>The site can store a single <code>fatorati-theme</code> preference in your browser's local storage so your light or dark mode selection is remembered. This preference is not used for advertising, analytics, or cross-site tracking. The site can also follow your device's color-scheme preference when no saved choice exists. Hosting or security services may use necessary technical cookies or similar mechanisms.</p>
+
+        <h2>Affiliate and external links</h2>
+        <p>The current Semrush plan link goes directly to Semrush and is not affiliate-tracked. If approved affiliate links are added later, they will be disclosed. External service providers may receive information about your visit and use their own cookies or similar technologies; their privacy policies apply after you leave Fatorati.</p>
+
+        <h2>Your choices and requests</h2>
+        <p>You can change or clear the saved theme preference in your browser and choose not to follow external links. If you have a privacy question or request about information sent to Fatorati, contact <a href="mailto:hello@fatorati.me?subject=Privacy%20request">hello@fatorati.me</a>. We will review the request and respond as appropriate.</p>
+
+        <h2>Related notices</h2>
+        <p>Our <a href={localizedPath(locale, 'cookies')}>cookie and local-storage notice</a> explains the theme preference and the technologies that may be used by hosting or external services. The <a href={localizedPath(locale, 'terms')}>terms of use</a> describe the limits of our editorial content and how third-party links are handled.</p>
+
+        <h2>Changes to this policy</h2>
+        <p>If we add accounts, analytics, a newsletter, advertising, or other services, we will update this policy to explain what changes. This notice should be reviewed against the final Cloudflare Access, Pages, GitHub, and affiliate-program settings before launch.</p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>
