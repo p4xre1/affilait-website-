@@ -20,6 +20,9 @@ const runtimeEnvUrl = await loadModule('../functions/_shared/runtime-env.ts');
 const scanLimiterUrl = await loadModule('../functions/_shared/scan-limiter.ts');
 const scanRepositoryUrl = await loadModule('../functions/_shared/scan-repository.ts');
 const inputGuardUrl = await loadModule('../functions/_shared/input-guard.ts');
+const safeOutboundUrl = await loadModule('../functions/_shared/safe-outbound.ts', [
+  ["from './input-guard';", `from '${inputGuardUrl}';`],
+]);
 const observabilityUrl = await loadModule('../functions/_shared/observability.ts', [
   ["from './runtime-env';", `from '${runtimeEnvUrl}';`],
 ]);
@@ -30,6 +33,7 @@ const moduleUrl = await loadModule('../functions/api/scan.ts', [
   ["from '../_shared/scan-repository';", `from '${scanRepositoryUrl}';`],
   ["from '../_shared/runtime-env';", `from '${runtimeEnvUrl}';`],
   ["from '../_shared/input-guard';", `from '${inputGuardUrl}';`],
+  ["from '../_shared/safe-outbound';", `from '${safeOutboundUrl}';`],
 ]);
 const { onRequestPost } = await import(moduleUrl);
 const originalFetch = globalThis.fetch;

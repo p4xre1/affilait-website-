@@ -4,6 +4,7 @@ import { scanLimiter } from '../_shared/scan-limiter';
 import { ScanRepositoryError, SupabaseScanRepository, type CrawlPageRecord, type ScanRepository } from '../_shared/scan-repository';
 import { supabaseConfig, type RuntimeEnv } from '../_shared/runtime-env';
 import { assertSafeObject, hasScript, InputValidationError } from '../_shared/input-guard';
+import { isSafePublicHostname, isSameScopeHost, SafeOutboundError, SafeOutboundRequest } from '../_shared/safe-outbound';
 
 type ScanEnv = RuntimeEnv;
 
@@ -84,77 +85,30 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
 }
 
 function isPublicHostname(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.$/, '');
-  if (!host || host.length > 253 || host.includes(':') || !host.includes('.')) return false;
-  if (/^(?:\d+|0x[\da-f]+)$/i.test(host) || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return false;
-  if (host.endsWith('.test') || host.endsWith('.invalid') || host.endsWith('.example') || host.endsWith('.onion')) return false;
-
-  const forbiddenSuffixes = [
-    'intranet', 'lan', 'corp', 'home', 'home.arpa', 'arpa', 'priv',
-    'nip.io', 'sslip.io', 'xip.io', 'localtest.me', 'localhost.direct', 'lvh.me', 'vcap.me',
-    'myip.io', 'fip.io', 'traefik.me', 'customer-ip.com', 'localh.st', '127-0-0-1.org.uk',
-  ];
-  if (forbiddenSuffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return false;
-  if (host === 'metadata.google.internal' || host === 'metadata.google' || host === 'instance-data' || host === 'metadata.tce.internal' || host === 'metadata.packet.net' || host === 'metadata') return false;
-
-  if (/(?:^|[.-])(?:127|169[.-]254|10|192[.-]168|172[.-](?:1[6-9]|2\d|3[01])|0[.-]0[.-]0[.-]0)[.-]/.test(host)) {
-    return false;
-  }
-
-  const labels = host.split('.');
-  if (labels.length < 2) return false;
-  if (!labels.every((label) => label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) {
-    return false;
-  }
-  if (labels.some((label) => /^0x/i.test(label) || /^0\d+$/.test(label))) return false;
-  if (labels.every((label) => /^\d+$/.test(label))) return false;
-
-  const tld = labels[labels.length - 1];
-  if (!/^(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i.test(tld)) return false;
-
-  return true;
-}
-
-function parsePublicUrl(value: unknown): PublicUrl {
-  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 2_048) {
-    throw new ScanError('invalid_url', 'Enter a public website URL, such as https://example.com.');
-  }
-  const input = value.trim();
-  if (/[\x00-\x1f\x7f]/.test(input)) {
-    throw new ScanError('invalid_url', 'The URL contains invalid control characters.');
-  }
-  if (hasScript(input)) {
-    throw new ScanError('invalid_url', 'URLs cannot contain script tags or dangerous HTML.');
-  }
-  const candidate = /^https?:\/\//i.test(input) ? input : `https://${input}`;
-  let url: URL;
-  try {
-    url = new URL(candidate);
-  } catch {
-    throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new ScanError('invalid_url', 'Only public HTTP and HTTPS websites can be scanned.');
-  }
-  if (url.username || url.password) {
-    throw new ScanError('invalid_url', 'Remove any username or password from the URL before scanning.');
-  }
-  if (!hasSafePort(url)) {
-    throw new ScanError('invalid_url', 'Custom ports are not supported. Use the public website address.');
-  }
-  if (!isPublicHostname(url.hostname)) {
-    throw new ScanError('invalid_url', 'The scanner only accepts public domain names, not local or private network addresses.');
-  }
-  const removedQuery = Boolean(url.search || url.hash);
-  url.search = '';
-  url.hash = '';
-  return { url, removedQuery };
+  return isSafePublicHostname(hostname);
 }
 
 function sameSiteHost(hostname: string, rootHostname: string): boolean {
-  const normalize = (value: string) => value.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
-  return normalize(hostname) === normalize(rootHostname);
+  return isSameScopeHost(hostname, rootHostname, 'same-site');
+}
+
+function parsePublicUrl(value: unknown): PublicUrl {
+  try {
+    const validated = SafeOutboundRequest.validateUrl(value);
+    if (!isPublicHostname(validated.url.hostname) || !hasSafePort(validated.url)) {
+      throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
+    }
+    const candidate = typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : `https://${value}`;
+    let parsed: URL;
+    try { parsed = new URL(candidate); } catch { parsed = validated.url; }
+    const removedQuery = Boolean(parsed.search || parsed.hash);
+    return { url: validated.url, removedQuery };
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
+    }
+    throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
+  }
 }
 
 function repositoryFromRequest(context: ScanContext): ScanRepository | null {
@@ -285,36 +239,14 @@ function hasSafePort(url: URL): boolean {
 }
 
 async function readLimitedBody(response: Response | Request, maximumBytes: number, tooLargeMessage = 'The public page is too large for this free scan.'): Promise<string> {
-  const declaredSize = Number(response.headers.get('content-length') || 0);
-  if (declaredSize > maximumBytes) {
-    await response.body?.cancel();
-    throw new ScanError('body_too_large', tooLargeMessage);
-  }
-  if (!response.body) return '';
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maximumBytes) {
-        await reader.cancel();
-        throw new ScanError('body_too_large', tooLargeMessage);
-      }
-      chunks.push(value);
+    return await SafeOutboundRequest.readBoundedBody(response as Response, maximumBytes, tooLargeMessage);
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
     }
-  } finally {
-    reader.releaseLock();
+    throw error;
   }
-  const bytes = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8').decode(bytes);
 }
 
 async function fetchPublicText(
@@ -324,57 +256,26 @@ async function fetchPublicText(
   maximumBytes: number,
   timeoutMs: number,
 ): Promise<FetchTextResult> {
-  let current = new URL(input);
-  for (let redirectCount = 0; redirectCount <= 3; redirectCount += 1) {
-    if (current.username || current.password || !hasSafePort(current) || !isPublicHostname(current.hostname) || !sameSiteHost(current.hostname, rootHostname)) {
-      throw new ScanError('unsafe_redirect', 'The site redirected outside its public domain, so the scan stopped safely.');
+  try {
+    const result = await SafeOutboundRequest.fetch(input, {
+      rootHostname,
+      accept,
+      maximumBytes,
+      timeoutMs,
+      maxRedirects: 3,
+      crawlScope: 'same-site',
+    });
+    return {
+      response: result.response,
+      text: result.text,
+      finalUrl: result.finalUrl,
+    };
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(current.toString(), {
-        method: 'GET',
-        redirect: 'manual',
-        signal: controller.signal,
-        headers: {
-          Accept: accept,
-          'User-Agent': 'FatoratiSiteAudit/1.0 (+https://fatorati.me/)',
-        },
-      });
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
-        await response.body?.cancel();
-        if (!location || redirectCount === 3) {
-          throw new ScanError('redirect_limit', 'The page could not be reached after several redirects.');
-        }
-        let redirected: URL;
-        try {
-          redirected = new URL(location, current);
-        } catch {
-          throw new ScanError('unsafe_redirect', 'The site returned an invalid redirect.');
-        }
-        if (redirected.protocol !== 'http:' && redirected.protocol !== 'https:') {
-          throw new ScanError('unsafe_redirect', 'The site redirected to an unsupported URL scheme.');
-        }
-        if (redirected.username || redirected.password || !hasSafePort(redirected) || !isPublicHostname(redirected.hostname) || !sameSiteHost(redirected.hostname, rootHostname)) {
-          throw new ScanError('unsafe_redirect', 'The site redirected outside its public domain, so the scan stopped safely.');
-        }
-        redirected.search = '';
-        redirected.hash = '';
-        current = redirected;
-        continue;
-      }
-      const text = await readLimitedBody(response, maximumBytes);
-      return { response, text, finalUrl: current };
-    } catch (error) {
-      if (error instanceof ScanError) throw error;
-      if (controller.signal.aborted) throw new ScanError('timeout', 'The site took too long to respond.');
-      throw new ScanError('network', 'The site could not be reached by the audit service.');
-    } finally {
-      clearTimeout(timeout);
-    }
+    throw error;
   }
-  throw new ScanError('redirect_limit', 'The page could not be reached after several redirects.');
 }
 
 function decodeEntities(value: string): string {

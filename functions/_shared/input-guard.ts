@@ -7,7 +7,11 @@
 export const SCRIPT_INJECTION_PATTERN = /<\s*script\b|<\s*\/\s*script\s*>|<\s*(?:iframe|object|embed|applet|base|link|meta|style|form|svg|math)\b|<\s*[^>]*\bon[a-z]+\s*=|\bjavascript\s*:|\bvbscript\s*:|\bdata\s*:\s*text\/html|(?:^|\s)on(?:load|error|click|mouse\w+|key\w+|focus|blur|change|submit|input|pointer\w+|touch\w+|animation\w+)\s*=/i;
 
 export class InputValidationError extends Error {
-  constructor(readonly field: string, message: string) {
+  constructor(
+    readonly field: string,
+    message: string,
+    readonly code: string = 'validation_error',
+  ) {
     super(message);
     this.name = 'InputValidationError';
   }
@@ -22,7 +26,7 @@ export function hasScript(value: unknown): boolean {
 /** Reject any value that contains script injection patterns. */
 export function assertNoScript(value: string, fieldName = 'input'): void {
   if (hasScript(value)) {
-    throw new InputValidationError(fieldName, `The ${fieldName} contains forbidden script or HTML patterns.`);
+    throw new InputValidationError(fieldName, `The ${fieldName} contains forbidden script or HTML patterns.`, 'script_injection_detected');
   }
 }
 
@@ -44,11 +48,11 @@ export function validateBoundedString(
   maxLength: number,
 ): string {
   if (typeof value !== 'string') {
-    throw new InputValidationError(fieldName, `${fieldName} must be a string.`);
+    throw new InputValidationError(fieldName, `${fieldName} must be a string.`, 'invalid_type');
   }
   const clean = sanitizeCleanText(value, maxLength + 1);
   if (clean.length < minLength || clean.length > maxLength) {
-    throw new InputValidationError(fieldName, `${fieldName} must contain ${minLength}–${maxLength} characters.`);
+    throw new InputValidationError(fieldName, `${fieldName} must contain ${minLength}–${maxLength} characters.`, 'length_out_of_bounds');
   }
   assertNoScript(clean, fieldName);
   return clean;
@@ -57,15 +61,15 @@ export function validateBoundedString(
 /** Protect against prototype pollution and parameter pollution on JSON bodies. */
 export function assertSafeObject(obj: unknown, maxKeys = 10, label = 'Request body'): Record<string, unknown> {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    throw new InputValidationError('body', `${label} must be a JSON object.`);
+    throw new InputValidationError('body', `${label} must be a JSON object.`, 'invalid_object');
   }
   const keys = Object.keys(obj);
   if (keys.length > maxKeys) {
-    throw new InputValidationError('body', `${label} exceeds the maximum allowed ${maxKeys} fields.`);
+    throw new InputValidationError('body', `${label} exceeds the maximum allowed ${maxKeys} fields.`, 'too_many_keys');
   }
   for (const key of keys) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      throw new InputValidationError('body', 'Invalid object property name.');
+      throw new InputValidationError('body', 'Invalid object property name.', 'prototype_pollution_detected');
     }
   }
   return obj as Record<string, unknown>;
