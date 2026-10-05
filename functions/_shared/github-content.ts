@@ -1,5 +1,6 @@
 import { parse as parseYaml } from 'yaml';
 import type { AdminEnv } from './admin-auth';
+import { hasScript } from './input-guard';
 
 const CONTENT_DIRECTORY = 'src/content/articles';
 const CONTENT_LIMIT_BYTES = 250_000;
@@ -41,6 +42,9 @@ function repositoryConfig(env: AdminEnv) {
   const branch = env.GITHUB_BRANCH?.trim() || 'main';
   if (!token || !owner || !repository) {
     throw new ContentApiError('The editorial repository is not configured. Contact the site administrator.', 503);
+  }
+  if (!/^[a-zA-Z0-9_.-]{1,100}$/.test(owner) || !/^[a-zA-Z0-9_.-]{1,100}$/.test(repository) || !/^[a-zA-Z0-9/_.-]{1,100}$/.test(branch)) {
+    throw new ContentApiError('The editorial repository configuration is invalid.', 500);
   }
   return { token, owner, repository, branch };
 }
@@ -101,12 +105,19 @@ function parseFrontmatter(markdown: string): Record<string, unknown> {
   if (!match || match[1].length > 32_000) {
     throw new ContentApiError('Article must begin with a valid YAML frontmatter block.', 400);
   }
+  if (hasScript(match[1])) {
+    throw new ContentApiError('Article frontmatter cannot contain script tags or dangerous HTML.', 400);
+  }
   try {
     const metadata: unknown = parseYaml(match[1], { maxAliasCount: 0 });
     if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
       throw new Error('Frontmatter must be an object.');
     }
-    return metadata as Record<string, unknown>;
+    const record = metadata as Record<string, unknown>;
+    if (Object.keys(record).length > 30) {
+      throw new ContentApiError('Article frontmatter exceeds the maximum allowed 30 properties.', 400);
+    }
+    return record;
   } catch (error) {
     if (error instanceof ContentApiError) throw error;
     throw new ContentApiError('Article frontmatter contains invalid YAML.', 400);
@@ -118,7 +129,11 @@ function requireString(record: Record<string, unknown>, key: string, minimum: nu
   if (typeof value !== 'string' || value.trim().length < minimum || value.trim().length > maximum) {
     throw new ContentApiError(`Article field “${key}” must contain ${minimum}${Number.isFinite(maximum) ? `–${maximum}` : ' or more'} characters.`, 400);
   }
-  return value.trim();
+  const clean = value.trim();
+  if (hasScript(clean)) {
+    throw new ContentApiError(`Article field “${key}” cannot contain script tags or executable HTML.`, 400);
+  }
+  return clean;
 }
 
 function requireDate(record: Record<string, unknown>, key: string, optional = false): string | undefined {
@@ -143,58 +158,76 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
 
 function validateMarkdown(markdown: string): { title: string; category: string; publishedAt: string } {
   if (!markdown.trim()) throw new ContentApiError('Article content cannot be empty.', 400);
+  if (new TextEncoder().encode(markdown).byteLength > CONTENT_LIMIT_BYTES) {
+    throw new ContentApiError('Article source is too large. Maximum size is 250 KB.', 413);
+  }
   const metadata = parseFrontmatter(markdown);
-  const title = requireString(metadata, 'title', 8);
+  const title = requireString(metadata, 'title', 8, 160);
   requireString(metadata, 'description', 50, 180);
-  const category = requireString(metadata, 'category', 1);
+  const category = requireString(metadata, 'category', 1, 40);
   if (!CATEGORY_VALUES.has(category)) {
     throw new ContentApiError('Category must be semrush-guides, education, or editorial.', 400);
   }
   const publishedAt = requireDate(metadata, 'publishedAt')!;
   requireDate(metadata, 'updatedAt', true);
-  if (!Number.isInteger(metadata.readTime) || Number(metadata.readTime) < 1) {
-    throw new ContentApiError('Article field “readTime” must be a positive whole number.', 400);
+  if (!Number.isInteger(metadata.readTime) || Number(metadata.readTime) < 1 || Number(metadata.readTime) > 120) {
+    throw new ContentApiError('Article field “readTime” must be a whole number between 1 and 120.', 400);
   }
-  requireString(metadata, 'shortAnswer', 40);
-  requireString(metadata, 'topPick', 2);
+  requireString(metadata, 'shortAnswer', 40, 500);
+  requireString(metadata, 'topPick', 2, 200);
 
-  if (!Array.isArray(metadata.comparison) || metadata.comparison.length < 2) {
-    throw new ContentApiError('Comparison must include at least two options.', 400);
+  if (!Array.isArray(metadata.comparison) || metadata.comparison.length < 2 || metadata.comparison.length > 10) {
+    throw new ContentApiError('Comparison must include between 2 and 10 options.', 400);
   }
   for (const [index, item] of metadata.comparison.entries()) {
     const row = requireRecord(item, `Comparison option ${index + 1}`);
-    requireString(row, 'product', 2);
-    requireString(row, 'bestFor', 8);
-    requireString(row, 'standout', 8);
-    requireString(row, 'keepInMind', 8);
+    requireString(row, 'product', 2, 100);
+    requireString(row, 'bestFor', 8, 200);
+    requireString(row, 'standout', 8, 300);
+    requireString(row, 'keepInMind', 8, 300);
   }
   for (const key of ['pros', 'cons']) {
     const items = metadata[key];
-    if (!Array.isArray(items) || items.length < 2 || items.some((item) => typeof item !== 'string' || item.trim().length < 4)) {
-      throw new ContentApiError(`Article field “${key}” must be a list with at least two useful points.`, 400);
+    if (!Array.isArray(items) || items.length < 2 || items.length > 20 || items.some((item) => typeof item !== 'string' || item.trim().length < 4 || item.trim().length > 300)) {
+      throw new ContentApiError(`Article field “${key}” must be a list with 2–20 useful points (each under 300 characters).`, 400);
+    }
+    for (const point of items) {
+      if (typeof point === 'string' && hasScript(point)) {
+        throw new ContentApiError(`Article field “${key}” cannot contain script tags or HTML.`, 400);
+      }
     }
   }
 
   const productLink = requireRecord(metadata.productLink, 'External product link');
-  requireString(productLink, 'product', 2);
-  requireString(productLink, 'label', 3);
-  const productHref = requireString(productLink, 'href', 1);
+  requireString(productLink, 'product', 2, 100);
+  requireString(productLink, 'label', 3, 100);
+  const productHref = requireString(productLink, 'href', 1, 1000);
+  if (hasScript(productHref)) {
+    throw new ContentApiError('External product link cannot contain script or javascript pseudo-protocols.', 400);
+  }
   try {
-    if (new URL(productHref).protocol !== 'https:') throw new Error('HTTPS required');
+    const parsed = new URL(productHref);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('HTTPS required');
   } catch {
-    throw new ContentApiError('External product links must use a valid HTTPS URL.', 400);
+    throw new ContentApiError('External product links must use a valid HTTPS URL without embedded credentials.', 400);
   }
 
   if (metadata.sources !== undefined) {
-    if (!Array.isArray(metadata.sources)) throw new ContentApiError('Sources must be a YAML list.', 400);
+    if (!Array.isArray(metadata.sources) || metadata.sources.length > 20) {
+      throw new ContentApiError('Sources must be a YAML list of up to 20 items.', 400);
+    }
     for (const [index, item] of metadata.sources.entries()) {
       const source = requireRecord(item, `Source ${index + 1}`);
-      requireString(source, 'label', 3);
-      const href = requireString(source, 'href', 1);
+      requireString(source, 'label', 3, 150);
+      const href = requireString(source, 'href', 1, 1000);
+      if (hasScript(href)) {
+        throw new ContentApiError('Source link cannot contain script or javascript pseudo-protocols.', 400);
+      }
       try {
-        if (new URL(href).protocol !== 'https:') throw new Error('HTTPS required');
+        const parsed = new URL(href);
+        if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('HTTPS required');
       } catch {
-        throw new ContentApiError('Source links must use valid HTTPS URLs.', 400);
+        throw new ContentApiError('Source links must use valid HTTPS URLs without embedded credentials.', 400);
       }
     }
   }
@@ -203,8 +236,12 @@ function validateMarkdown(markdown: string): { title: string; category: string; 
     throw new ContentApiError('Article field “featured” must be true or false.', 400);
   }
   const bodyMatch = markdown.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)([\s\S]*)$/);
-  if (!bodyMatch?.[1].trim()) {
+  const body = bodyMatch?.[1]?.trim();
+  if (!body) {
     throw new ContentApiError('Article body cannot be empty.', 400);
+  }
+  if (hasScript(body)) {
+    throw new ContentApiError('Article body cannot contain executable script tags, iframes, or event handlers.', 400);
   }
   return { title, category, publishedAt };
 }
@@ -272,6 +309,9 @@ export async function saveArticle(
   const contentBytes = new TextEncoder().encode(input.content);
   if (contentBytes.byteLength > CONTENT_LIMIT_BYTES) {
     throw new ContentApiError('Article source is too large. Maximum size is 250 KB.', 413);
+  }
+  if (input.expectedSha !== undefined && !/^[0-9a-f]{40,64}$/i.test(input.expectedSha)) {
+    throw new ContentApiError('The article revision is invalid. Refresh the dashboard and try again.', 400);
   }
   const metadata = validateMarkdown(input.content);
   const { branch } = repositoryConfig(env);

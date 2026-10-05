@@ -3,6 +3,8 @@ import { logStructured, newTraceId, requestTrace, type RequestTrace } from '../_
 import { scanLimiter } from '../_shared/scan-limiter';
 import { ScanRepositoryError, SupabaseScanRepository, type CrawlPageRecord, type ScanRepository } from '../_shared/scan-repository';
 import { supabaseConfig, type RuntimeEnv } from '../_shared/runtime-env';
+import { assertSafeObject, hasScript, InputValidationError } from '../_shared/input-guard';
+import { isSafePublicHostname, isSameScopeHost, SafeOutboundError, SafeOutboundRequest } from '../_shared/safe-outbound';
 
 type ScanEnv = RuntimeEnv;
 
@@ -73,56 +75,40 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store, max-age=0',
       'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
       'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Resource-Policy': 'same-origin',
       ...extraHeaders,
     },
   });
 }
 
 function isPublicHostname(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.$/, '');
-  if (!host || host.length > 253 || host.includes(':') || !host.includes('.')) return false;
-  if (/^(?:\d+|0x[\da-f]+)$/i.test(host) || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return false;
-  if (host.endsWith('.test') || host.endsWith('.invalid') || host.endsWith('.example') || host.endsWith('.onion')) return false;
-  if (['nip.io', 'sslip.io', 'xip.io', 'localtest.me', 'localhost.direct', 'lvh.me', 'vcap.me'].some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return false;
-  if (host === 'metadata.google.internal' || host === 'metadata.google') return false;
-  return host.split('.').every((label) => label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label));
-}
-
-function parsePublicUrl(value: unknown): PublicUrl {
-  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 2_048) {
-    throw new ScanError('invalid_url', 'Enter a public website URL, such as https://example.com.');
-  }
-  const input = value.trim();
-  const candidate = /^https?:\/\//i.test(input) ? input : `https://${input}`;
-  let url: URL;
-  try {
-    url = new URL(candidate);
-  } catch {
-    throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new ScanError('invalid_url', 'Only public HTTP and HTTPS websites can be scanned.');
-  }
-  if (url.username || url.password) {
-    throw new ScanError('invalid_url', 'Remove any username or password from the URL before scanning.');
-  }
-  if (!hasSafePort(url)) {
-    throw new ScanError('invalid_url', 'Custom ports are not supported. Use the public website address.');
-  }
-  if (!isPublicHostname(url.hostname)) {
-    throw new ScanError('invalid_url', 'The scanner only accepts public domain names, not local or private network addresses.');
-  }
-  const removedQuery = Boolean(url.search || url.hash);
-  url.search = '';
-  url.hash = '';
-  return { url, removedQuery };
+  return isSafePublicHostname(hostname);
 }
 
 function sameSiteHost(hostname: string, rootHostname: string): boolean {
-  const normalize = (value: string) => value.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
-  return normalize(hostname) === normalize(rootHostname);
+  return isSameScopeHost(hostname, rootHostname, 'same-site');
+}
+
+function parsePublicUrl(value: unknown): PublicUrl {
+  try {
+    const validated = SafeOutboundRequest.validateUrl(value);
+    if (!isPublicHostname(validated.url.hostname) || !hasSafePort(validated.url)) {
+      throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
+    }
+    const candidate = typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : `https://${value}`;
+    let parsed: URL;
+    try { parsed = new URL(candidate); } catch { parsed = validated.url; }
+    const removedQuery = Boolean(parsed.search || parsed.hash);
+    return { url: validated.url, removedQuery };
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
+    }
+    throw new ScanError('invalid_url', 'That URL is not valid. Enter a public website address.');
+  }
 }
 
 function repositoryFromRequest(context: ScanContext): ScanRepository | null {
@@ -253,36 +239,14 @@ function hasSafePort(url: URL): boolean {
 }
 
 async function readLimitedBody(response: Response | Request, maximumBytes: number, tooLargeMessage = 'The public page is too large for this free scan.'): Promise<string> {
-  const declaredSize = Number(response.headers.get('content-length') || 0);
-  if (declaredSize > maximumBytes) {
-    await response.body?.cancel();
-    throw new ScanError('body_too_large', tooLargeMessage);
-  }
-  if (!response.body) return '';
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maximumBytes) {
-        await reader.cancel();
-        throw new ScanError('body_too_large', tooLargeMessage);
-      }
-      chunks.push(value);
+    return await SafeOutboundRequest.readBoundedBody(response as Response, maximumBytes, tooLargeMessage);
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
     }
-  } finally {
-    reader.releaseLock();
+    throw error;
   }
-  const bytes = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8').decode(bytes);
 }
 
 async function fetchPublicText(
@@ -292,57 +256,26 @@ async function fetchPublicText(
   maximumBytes: number,
   timeoutMs: number,
 ): Promise<FetchTextResult> {
-  let current = new URL(input);
-  for (let redirectCount = 0; redirectCount <= 3; redirectCount += 1) {
-    if (current.username || current.password || !hasSafePort(current) || !isPublicHostname(current.hostname) || !sameSiteHost(current.hostname, rootHostname)) {
-      throw new ScanError('unsafe_redirect', 'The site redirected outside its public domain, so the scan stopped safely.');
+  try {
+    const result = await SafeOutboundRequest.fetch(input, {
+      rootHostname,
+      accept,
+      maximumBytes,
+      timeoutMs,
+      maxRedirects: 3,
+      crawlScope: 'same-site',
+    });
+    return {
+      response: result.response,
+      text: result.text,
+      finalUrl: result.finalUrl,
+    };
+  } catch (error) {
+    if (error instanceof SafeOutboundError) {
+      throw new ScanError(error.code, error.message);
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(current.toString(), {
-        method: 'GET',
-        redirect: 'manual',
-        signal: controller.signal,
-        headers: {
-          Accept: accept,
-          'User-Agent': 'FatoratiSiteAudit/1.0 (+https://fatorati.me/)',
-        },
-      });
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
-        await response.body?.cancel();
-        if (!location || redirectCount === 3) {
-          throw new ScanError('redirect_limit', 'The page could not be reached after several redirects.');
-        }
-        let redirected: URL;
-        try {
-          redirected = new URL(location, current);
-        } catch {
-          throw new ScanError('unsafe_redirect', 'The site returned an invalid redirect.');
-        }
-        if (redirected.protocol !== 'http:' && redirected.protocol !== 'https:') {
-          throw new ScanError('unsafe_redirect', 'The site redirected to an unsupported URL scheme.');
-        }
-        if (redirected.username || redirected.password || !hasSafePort(redirected) || !isPublicHostname(redirected.hostname) || !sameSiteHost(redirected.hostname, rootHostname)) {
-          throw new ScanError('unsafe_redirect', 'The site redirected outside its public domain, so the scan stopped safely.');
-        }
-        redirected.search = '';
-        redirected.hash = '';
-        current = redirected;
-        continue;
-      }
-      const text = await readLimitedBody(response, maximumBytes);
-      return { response, text, finalUrl: current };
-    } catch (error) {
-      if (error instanceof ScanError) throw error;
-      if (controller.signal.aborted) throw new ScanError('timeout', 'The site took too long to respond.');
-      throw new ScanError('network', 'The site could not be reached by the audit service.');
-    } finally {
-      clearTimeout(timeout);
-    }
+    throw error;
   }
-  throw new ScanError('redirect_limit', 'The page could not be reached after several redirects.');
 }
 
 function decodeEntities(value: string): string {
@@ -367,7 +300,11 @@ function decodeEntities(value: string): string {
 }
 
 function plainText(value: string): string {
-  return decodeEntities(value.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+  return decodeEntities(value.replace(/<[^>]*>/g, ' '))
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function attribute(tag: string, name: string): string | null {
@@ -533,11 +470,13 @@ function robotsRules(text: string): { sitemaps: string[]; disallow: string[] } {
     }
     const sitemap = line.match(/^sitemap\s*:\s*(\S+)/i);
     if (sitemap) {
-      sitemaps.push(sitemap[1]);
+      if (sitemaps.length < 50) sitemaps.push(sitemap[1]);
       continue;
     }
     const blocked = line.match(/^disallow\s*:\s*(.*)$/i);
-    if (activeForAll && blocked?.[1].trim()) disallow.push(blocked[1].trim());
+    if (activeForAll && blocked?.[1].trim()) {
+      if (disallow.length < 500) disallow.push(blocked[1].trim());
+    }
   }
   return { sitemaps, disallow };
 }
@@ -681,6 +620,8 @@ function cleanAuditText(value: unknown, maximum = 280): string {
   return value
     .replace(/<[^>]*>/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maximum);
@@ -808,6 +749,10 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   if (originHeader && originHeader !== requestOrigin) {
     return json({ error: 'Cross-origin audit requests are not accepted.' }, 403);
   }
+  const secFetchSite = context.request.headers.get('Sec-Fetch-Site');
+  if (secFetchSite === 'cross-site') {
+    return json({ error: 'Cross-origin audit requests are not accepted.' }, 403);
+  }
   if (!context.request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
     return json({ error: 'Send audit requests as application/json.' }, 415);
   }
@@ -823,15 +768,24 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   let input: Record<string, unknown>;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return json({ error: 'The audit request must be a JSON object.' }, 400);
-    input = parsed as Record<string, unknown>;
-  } catch {
+    input = assertSafeObject(parsed, 10, 'The audit request');
+  } catch (error) {
+    if (error instanceof InputValidationError) return json({ error: error.message }, 400);
     return json({ error: 'The audit request must contain valid JSON.' }, 400);
   }
   if (input.permission !== true) return json({ error: 'Confirm that you own the website or have permission to audit its public pages.' }, 400);
 
+  if (typeof input.action !== 'string' || !['prepare', 'scan-pages'].includes(input.action)) {
+    return json({ error: 'Unknown audit action.' }, 400);
+  }
+
   if (input.action === 'prepare') {
     trace.scanId = newTraceId();
+    if (input.projectId !== undefined) {
+      if (typeof input.projectId !== 'string' || !UUID_PATTERN.test(input.projectId)) {
+        return errorFrom(new ScanError('invalid_input', 'The project identifier is not valid.'), trace);
+      }
+    }
   } else if (input.action === 'scan-pages') {
     if (input.scanId !== undefined && (typeof input.scanId !== 'string' || !UUID_PATTERN.test(input.scanId))) {
       return errorFrom(new ScanError('invalid_scan_id', 'The scan identifier is not valid.'), trace);
@@ -901,6 +855,11 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
       if (!Array.isArray(input.pages) || input.pages.length < 1 || input.pages.length > MAX_PAGES_PER_BATCH) {
         throw new ScanError('invalid_batch', `Send between 1 and ${MAX_PAGES_PER_BATCH} same-site URLs per scan batch.`);
       }
+      for (const page of input.pages) {
+        if (typeof page !== 'string' || page.length > 2_048 || hasScript(page)) {
+          throw new ScanError('invalid_url', 'Page URLs cannot contain scripts or exceed 2,048 characters.');
+        }
+      }
       const urls = [...new Set(input.pages.map((page) => {
         const parsed = parsePublicUrl(page);
         if (!sameSiteHost(parsed.url.hostname, site.url.hostname)) {
@@ -922,6 +881,24 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   }
 
   return json({ error: 'Unknown audit action.' }, 400);
+}
+
+export async function onRequest(context: ScanContext): Promise<Response> {
+  if (context.request.method.toUpperCase() !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, max-age=0',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
+        'Referrer-Policy': 'no-referrer',
+      },
+    });
+  }
+  return onRequestPost(context);
 }
 
 export async function onRequestPost(context: ScanContext): Promise<Response> {

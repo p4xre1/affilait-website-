@@ -19,6 +19,10 @@ const intelligenceModuleUrl = await loadModule('../functions/_shared/search-inte
 const runtimeEnvUrl = await loadModule('../functions/_shared/runtime-env.ts');
 const scanLimiterUrl = await loadModule('../functions/_shared/scan-limiter.ts');
 const scanRepositoryUrl = await loadModule('../functions/_shared/scan-repository.ts');
+const inputGuardUrl = await loadModule('../functions/_shared/input-guard.ts');
+const safeOutboundUrl = await loadModule('../functions/_shared/safe-outbound.ts', [
+  ["from './input-guard';", `from '${inputGuardUrl}';`],
+]);
 const observabilityUrl = await loadModule('../functions/_shared/observability.ts', [
   ["from './runtime-env';", `from '${runtimeEnvUrl}';`],
 ]);
@@ -28,6 +32,8 @@ const moduleUrl = await loadModule('../functions/api/scan.ts', [
   ["from '../_shared/scan-limiter';", `from '${scanLimiterUrl}';`],
   ["from '../_shared/scan-repository';", `from '${scanRepositoryUrl}';`],
   ["from '../_shared/runtime-env';", `from '${runtimeEnvUrl}';`],
+  ["from '../_shared/input-guard';", `from '${inputGuardUrl}';`],
+  ["from '../_shared/safe-outbound';", `from '${safeOutboundUrl}';`],
 ]);
 const { onRequestPost } = await import(moduleUrl);
 const originalFetch = globalThis.fetch;
@@ -194,6 +200,40 @@ try {
   const privateAddress = await post({ action: 'prepare', permission: true, url: 'http://127.0.0.1' });
   assert.equal(privateAddress.status, 400);
   assert.match((await privateAddress.json()).error, /public domain names/i);
+
+  for (const [index, maliciousAddress] of [
+    'http://127.1',
+    'http://0177.0.0.1',
+    'http://0x7f.0.0.1',
+    'http://169.254.169.254',
+    'http://127.0.0.1.nip.io',
+    'http://metadata.google.internal',
+    'http://internal-service.local',
+    'http://database.internal',
+  ].entries()) {
+    const res = await post({ action: 'prepare', permission: true, url: maliciousAddress }, { ip: `198.51.100.${100 + index}` });
+    assert.equal(res.status, 400, `Expected 400 for ${maliciousAddress}`);
+    assert.match((await res.json()).error, /public domain names/i);
+  }
+
+  const controlCharUrl = await post({ action: 'prepare', permission: true, url: 'https://example.com\r\n/path' }, { ip: '198.51.100.120' });
+  assert.equal(controlCharUrl.status, 400);
+  assert.match((await controlCharUrl.json()).error, /control characters/i);
+
+  const scriptInjectionUrl = await post({ action: 'prepare', permission: true, url: 'https://example.com/<script>alert(1)</script>' }, { ip: '198.51.100.121' });
+  assert.equal(scriptInjectionUrl.status, 400);
+  assert.match((await scriptInjectionUrl.json()).error, /script/i);
+
+  const jsProtocolUrl = await post({ action: 'prepare', permission: true, url: 'javascript:alert(1)' }, { ip: '198.51.100.122' });
+  assert.equal(jsProtocolUrl.status, 400);
+  assert.match((await jsProtocolUrl.json()).error, /script|public HTTP/i);
+
+  const excessiveFields = await post({
+    action: 'prepare', permission: true, url: 'https://example.com',
+    f1: 1, f2: 2, f3: 3, f4: 4, f5: 5, f6: 6, f7: 7, f8: 8, f9: 9, f10: 10,
+  }, { ip: '198.51.100.123' });
+  assert.equal(excessiveFields.status, 400);
+  assert.match((await excessiveFields.json()).error, /exceeds the maximum allowed/i);
 
   const badOrigin = await post({ action: 'prepare', permission: true, url: 'https://example.com' }, { origin: 'https://attacker.invalid' });
   assert.equal(badOrigin.status, 403);
