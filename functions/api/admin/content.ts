@@ -13,6 +13,10 @@ function json(data: unknown, status = 200): Response {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store, max-age=0',
       'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
+      'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Resource-Policy': 'same-origin',
     },
   });
 }
@@ -51,7 +55,7 @@ export async function onRequestPost(context: ContentApiContext): Promise<Respons
     if (typeof data.slug !== 'string' || typeof data.content !== 'string') {
       return json({ error: 'Both slug and Markdown content are required.' }, 400);
     }
-    if (data.expectedSha !== undefined && (typeof data.expectedSha !== 'string' || data.expectedSha.length > 80)) {
+    if (data.expectedSha !== undefined && (typeof data.expectedSha !== 'string' || !/^[0-9a-f]{40,64}$/i.test(data.expectedSha))) {
       return json({ error: 'The article revision is invalid. Refresh the dashboard and try again.' }, 400);
     }
     const saved = await saveArticle(context.env, {

@@ -42,6 +42,9 @@ function repositoryConfig(env: AdminEnv) {
   if (!token || !owner || !repository) {
     throw new ContentApiError('The editorial repository is not configured. Contact the site administrator.', 503);
   }
+  if (!/^[a-zA-Z0-9_.-]{1,100}$/.test(owner) || !/^[a-zA-Z0-9_.-]{1,100}$/.test(repository) || !/^[a-zA-Z0-9/_.-]{1,100}$/.test(branch)) {
+    throw new ContentApiError('The editorial repository configuration is invalid.', 500);
+  }
   return { token, owner, repository, branch };
 }
 
@@ -180,9 +183,10 @@ function validateMarkdown(markdown: string): { title: string; category: string; 
   requireString(productLink, 'label', 3);
   const productHref = requireString(productLink, 'href', 1);
   try {
-    if (new URL(productHref).protocol !== 'https:') throw new Error('HTTPS required');
+    const parsed = new URL(productHref);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('HTTPS required');
   } catch {
-    throw new ContentApiError('External product links must use a valid HTTPS URL.', 400);
+    throw new ContentApiError('External product links must use a valid HTTPS URL without embedded credentials.', 400);
   }
 
   if (metadata.sources !== undefined) {
@@ -192,9 +196,10 @@ function validateMarkdown(markdown: string): { title: string; category: string; 
       requireString(source, 'label', 3);
       const href = requireString(source, 'href', 1);
       try {
-        if (new URL(href).protocol !== 'https:') throw new Error('HTTPS required');
+        const parsed = new URL(href);
+        if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('HTTPS required');
       } catch {
-        throw new ContentApiError('Source links must use valid HTTPS URLs.', 400);
+        throw new ContentApiError('Source links must use valid HTTPS URLs without embedded credentials.', 400);
       }
     }
   }
@@ -272,6 +277,9 @@ export async function saveArticle(
   const contentBytes = new TextEncoder().encode(input.content);
   if (contentBytes.byteLength > CONTENT_LIMIT_BYTES) {
     throw new ContentApiError('Article source is too large. Maximum size is 250 KB.', 413);
+  }
+  if (input.expectedSha !== undefined && !/^[0-9a-f]{40,64}$/i.test(input.expectedSha)) {
+    throw new ContentApiError('The article revision is invalid. Refresh the dashboard and try again.', 400);
   }
   const metadata = validateMarkdown(input.content);
   const { branch } = repositoryConfig(env);

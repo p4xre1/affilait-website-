@@ -195,6 +195,25 @@ try {
   assert.equal(privateAddress.status, 400);
   assert.match((await privateAddress.json()).error, /public domain names/i);
 
+  for (const [index, maliciousAddress] of [
+    'http://127.1',
+    'http://0177.0.0.1',
+    'http://0x7f.0.0.1',
+    'http://169.254.169.254',
+    'http://127.0.0.1.nip.io',
+    'http://metadata.google.internal',
+    'http://internal-service.local',
+    'http://database.internal',
+  ].entries()) {
+    const res = await post({ action: 'prepare', permission: true, url: maliciousAddress }, { ip: `198.51.100.${100 + index}` });
+    assert.equal(res.status, 400, `Expected 400 for ${maliciousAddress}`);
+    assert.match((await res.json()).error, /public domain names/i);
+  }
+
+  const controlCharUrl = await post({ action: 'prepare', permission: true, url: 'https://example.com\r\n/path' }, { ip: '198.51.100.120' });
+  assert.equal(controlCharUrl.status, 400);
+  assert.match((await controlCharUrl.json()).error, /control characters/i);
+
   const badOrigin = await post({ action: 'prepare', permission: true, url: 'https://example.com' }, { origin: 'https://attacker.invalid' });
   assert.equal(badOrigin.status, 403);
 

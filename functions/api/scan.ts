@@ -73,7 +73,10 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store, max-age=0',
       'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
       'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Resource-Policy': 'same-origin',
       ...extraHeaders,
     },
   });
@@ -85,9 +88,31 @@ function isPublicHostname(hostname: string): boolean {
   if (/^(?:\d+|0x[\da-f]+)$/i.test(host) || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
   if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return false;
   if (host.endsWith('.test') || host.endsWith('.invalid') || host.endsWith('.example') || host.endsWith('.onion')) return false;
-  if (['nip.io', 'sslip.io', 'xip.io', 'localtest.me', 'localhost.direct', 'lvh.me', 'vcap.me'].some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return false;
-  if (host === 'metadata.google.internal' || host === 'metadata.google') return false;
-  return host.split('.').every((label) => label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label));
+
+  const forbiddenSuffixes = [
+    'intranet', 'lan', 'corp', 'home', 'home.arpa', 'arpa', 'priv',
+    'nip.io', 'sslip.io', 'xip.io', 'localtest.me', 'localhost.direct', 'lvh.me', 'vcap.me',
+    'myip.io', 'fip.io', 'traefik.me', 'customer-ip.com', 'localh.st', '127-0-0-1.org.uk',
+  ];
+  if (forbiddenSuffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return false;
+  if (host === 'metadata.google.internal' || host === 'metadata.google' || host === 'instance-data' || host === 'metadata.tce.internal' || host === 'metadata.packet.net' || host === 'metadata') return false;
+
+  if (/(?:^|[.-])(?:127|169[.-]254|10|192[.-]168|172[.-](?:1[6-9]|2\d|3[01])|0[.-]0[.-]0[.-]0)[.-]/.test(host)) {
+    return false;
+  }
+
+  const labels = host.split('.');
+  if (labels.length < 2) return false;
+  if (!labels.every((label) => label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) {
+    return false;
+  }
+  if (labels.some((label) => /^0x/i.test(label) || /^0\d+$/.test(label))) return false;
+  if (labels.every((label) => /^\d+$/.test(label))) return false;
+
+  const tld = labels[labels.length - 1];
+  if (!/^(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i.test(tld)) return false;
+
+  return true;
 }
 
 function parsePublicUrl(value: unknown): PublicUrl {
@@ -95,6 +120,9 @@ function parsePublicUrl(value: unknown): PublicUrl {
     throw new ScanError('invalid_url', 'Enter a public website URL, such as https://example.com.');
   }
   const input = value.trim();
+  if (/[\x00-\x1f\x7f]/.test(input)) {
+    throw new ScanError('invalid_url', 'The URL contains invalid control characters.');
+  }
   const candidate = /^https?:\/\//i.test(input) ? input : `https://${input}`;
   let url: URL;
   try {
@@ -367,7 +395,11 @@ function decodeEntities(value: string): string {
 }
 
 function plainText(value: string): string {
-  return decodeEntities(value.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+  return decodeEntities(value.replace(/<[^>]*>/g, ' '))
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function attribute(tag: string, name: string): string | null {
@@ -533,11 +565,13 @@ function robotsRules(text: string): { sitemaps: string[]; disallow: string[] } {
     }
     const sitemap = line.match(/^sitemap\s*:\s*(\S+)/i);
     if (sitemap) {
-      sitemaps.push(sitemap[1]);
+      if (sitemaps.length < 50) sitemaps.push(sitemap[1]);
       continue;
     }
     const blocked = line.match(/^disallow\s*:\s*(.*)$/i);
-    if (activeForAll && blocked?.[1].trim()) disallow.push(blocked[1].trim());
+    if (activeForAll && blocked?.[1].trim()) {
+      if (disallow.length < 500) disallow.push(blocked[1].trim());
+    }
   }
   return { sitemaps, disallow };
 }
@@ -681,6 +715,8 @@ function cleanAuditText(value: unknown, maximum = 280): string {
   return value
     .replace(/<[^>]*>/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maximum);
@@ -806,6 +842,10 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   const requestOrigin = new URL(context.request.url).origin;
   const originHeader = context.request.headers.get('Origin');
   if (originHeader && originHeader !== requestOrigin) {
+    return json({ error: 'Cross-origin audit requests are not accepted.' }, 403);
+  }
+  const secFetchSite = context.request.headers.get('Sec-Fetch-Site');
+  if (secFetchSite === 'cross-site') {
     return json({ error: 'Cross-origin audit requests are not accepted.' }, 403);
   }
   if (!context.request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
