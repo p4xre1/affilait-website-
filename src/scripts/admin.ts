@@ -223,9 +223,17 @@ Offer a clear next step without overstating what a tool can do.
     if (!form.reportValidity()) return;
     const slug = slugField.value.trim();
     const content = sourceField.value;
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-      setEditorStatus('Use lowercase letters and numbers separated by single hyphens for the slug.', 'error');
+    if (slug.length < 2 || slug.length > 80 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      setEditorStatus('Use 2–80 lowercase letters and numbers separated by single hyphens for the slug.', 'error');
       slugField.focus();
+      return;
+    }
+    if (new TextEncoder().encode(content).byteLength > 250_000) {
+      setEditorStatus('Article content exceeds the 250 KB limit.', 'error');
+      return;
+    }
+    if (/<\s*(?:script|iframe|object|embed|applet|style|link|meta)\b/i.test(content) || /\bjavascript\s*:/i.test(content) || /\bon\w+\s*=/i.test(content)) {
+      setEditorStatus('Article cannot contain script tags, event handlers, or executable HTML.', 'error');
       return;
     }
     setBusy(true);

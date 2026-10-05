@@ -3,6 +3,7 @@ import { logStructured, newTraceId, requestTrace, type RequestTrace } from '../_
 import { scanLimiter } from '../_shared/scan-limiter';
 import { ScanRepositoryError, SupabaseScanRepository, type CrawlPageRecord, type ScanRepository } from '../_shared/scan-repository';
 import { supabaseConfig, type RuntimeEnv } from '../_shared/runtime-env';
+import { assertSafeObject, hasScript, InputValidationError } from '../_shared/input-guard';
 
 type ScanEnv = RuntimeEnv;
 
@@ -122,6 +123,9 @@ function parsePublicUrl(value: unknown): PublicUrl {
   const input = value.trim();
   if (/[\x00-\x1f\x7f]/.test(input)) {
     throw new ScanError('invalid_url', 'The URL contains invalid control characters.');
+  }
+  if (hasScript(input)) {
+    throw new ScanError('invalid_url', 'URLs cannot contain script tags or dangerous HTML.');
   }
   const candidate = /^https?:\/\//i.test(input) ? input : `https://${input}`;
   let url: URL;
@@ -863,15 +867,24 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   let input: Record<string, unknown>;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return json({ error: 'The audit request must be a JSON object.' }, 400);
-    input = parsed as Record<string, unknown>;
-  } catch {
+    input = assertSafeObject(parsed, 10, 'The audit request');
+  } catch (error) {
+    if (error instanceof InputValidationError) return json({ error: error.message }, 400);
     return json({ error: 'The audit request must contain valid JSON.' }, 400);
   }
   if (input.permission !== true) return json({ error: 'Confirm that you own the website or have permission to audit its public pages.' }, 400);
 
+  if (typeof input.action !== 'string' || !['prepare', 'scan-pages'].includes(input.action)) {
+    return json({ error: 'Unknown audit action.' }, 400);
+  }
+
   if (input.action === 'prepare') {
     trace.scanId = newTraceId();
+    if (input.projectId !== undefined) {
+      if (typeof input.projectId !== 'string' || !UUID_PATTERN.test(input.projectId)) {
+        return errorFrom(new ScanError('invalid_input', 'The project identifier is not valid.'), trace);
+      }
+    }
   } else if (input.action === 'scan-pages') {
     if (input.scanId !== undefined && (typeof input.scanId !== 'string' || !UUID_PATTERN.test(input.scanId))) {
       return errorFrom(new ScanError('invalid_scan_id', 'The scan identifier is not valid.'), trace);
@@ -941,6 +954,11 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
       if (!Array.isArray(input.pages) || input.pages.length < 1 || input.pages.length > MAX_PAGES_PER_BATCH) {
         throw new ScanError('invalid_batch', `Send between 1 and ${MAX_PAGES_PER_BATCH} same-site URLs per scan batch.`);
       }
+      for (const page of input.pages) {
+        if (typeof page !== 'string' || page.length > 2_048 || hasScript(page)) {
+          throw new ScanError('invalid_url', 'Page URLs cannot contain scripts or exceed 2,048 characters.');
+        }
+      }
       const urls = [...new Set(input.pages.map((page) => {
         const parsed = parsePublicUrl(page);
         if (!sameSiteHost(parsed.url.hostname, site.url.hostname)) {
@@ -962,6 +980,24 @@ async function handleScanRequest(context: ScanContext, trace: RequestTrace): Pro
   }
 
   return json({ error: 'Unknown audit action.' }, 400);
+}
+
+export async function onRequest(context: ScanContext): Promise<Response> {
+  if (context.request.method.toUpperCase() !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+      status: 405,
+      headers: {
+        Allow: 'POST',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, max-age=0',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
+        'Referrer-Policy': 'no-referrer',
+      },
+    });
+  }
+  return onRequestPost(context);
 }
 
 export async function onRequestPost(context: ScanContext): Promise<Response> {

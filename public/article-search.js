@@ -11,7 +11,8 @@ if (searchField instanceof HTMLInputElement) {
     }
   });
   searchField.addEventListener('input', () => {
-    const query = searchField.value.trim().toLowerCase();
+    const raw = searchField.value.trim().slice(0, 100);
+    const query = raw.replace(/[\x00-\x1f\x7f]/g, '').replace(/<\s*script\b|<\s*\/\s*script\s*>/gi, '').toLowerCase();
     let visible = 0;
     articleCards.forEach((card) => {
       const text = card.getAttribute('data-search-text') ?? '';

@@ -395,13 +395,22 @@ const form = document.querySelector('#site-audit-form');
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
+    const rawUrl = urlInput.value.trim();
+    if (!rawUrl || rawUrl.length > 2048) {
+      setStatus('Please enter a valid URL up to 2,048 characters.', true);
+      return;
+    }
+    if (/<\s*script\b|javascript:|vbscript:|data:text\/html|<\s*\/script\s*>/i.test(rawUrl)) {
+      setStatus('Script tags and JavaScript URLs are not allowed.', true);
+      return;
+    }
     results.hidden = true;
     progress.hidden = false;
     progress.value = 0;
     submitButton.disabled = true;
     setStatus('Finding the sitemap and requesting a mobile PageSpeed report…');
     try {
-      const prepared = await postScan({ action: 'prepare', url: urlInput.value.trim() });
+      const prepared = await postScan({ action: 'prepare', url: rawUrl });
       const allPages = [];
       let partialError = '';
       const pageUrls = Array.isArray(prepared.pageUrls) ? prepared.pageUrls : [];
