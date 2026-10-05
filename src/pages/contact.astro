@@ -1,0 +1,39 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Contact Fatorati about a website scan, a technical finding, an editorial correction, privacy, or a relevant partnership inquiry.';
+const pageSchema = [{ '@type': 'ContactPage', name: 'Contact Fatorati', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="Contact Fatorati" description={description} routePath="contact" keywords={['contact Fatorati', 'website audit questions', 'editorial corrections']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell legal-page--contact">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Contact' }]} />
+    <header class="legal-hero">
+      <p class="eyebrow">We are listening</p>
+      <h1>Good questions<br /><em>make better guides.</em></h1>
+      <p class="legal-hero__intro">Have a question about how the free scan works, a technical finding, or something in an article? Send a note to the editorial team.</p>
+    </header>
+
+    <div class="contact-grid">
+      <section class="contact-card contact-card--primary">
+        <span class="contact-card__icon" aria-hidden="true">↗</span>
+        <p class="eyebrow">Email the editors</p>
+        <h2>Start a conversation.</h2>
+        <p>For questions about scan methodology, technical findings, privacy, corrections, or editorial content, email us. Include the relevant page title or public URL if it helps us understand your question.</p>
+        <a class="contact-email" href="mailto:hello@fatorati.me?subject=Hello%20Fatorati">hello@fatorati.me <span aria-hidden="true">↗</span></a>
+      </section>
+      <div class="contact-card contact-card--note">
+        <span class="contact-card__number">01 — EDITORIAL</span>
+        <h2>Corrections and feedback</h2>
+        <p>Tell us what looks out of date or unclear. We review factual corrections and update guides when the details materially change.</p>
+        <span class="contact-card__number">02 — COMMERCIAL</span>
+        <h2>Partnerships</h2>
+        <p>We consider relevant partnership inquiries, but commercial relationships do not buy coverage or influence our editorial conclusions.</p>
+      </div>
+    </div>
+    <p class="contact-fineprint">Fatorati is an independent website-checking and editorial site, not a web-hosting provider, implementation service, Google support channel, or Semrush customer-support team. Contact your provider directly for account, billing, or site changes.</p>
+  </article>
+</BaseLayout>

@@ -1,0 +1,174 @@
+---
+import { localizedPath, type EditionCode } from '@/data/site';
+import '@/styles/site-audit.css';
+
+interface Props {
+  locale: EditionCode;
+}
+
+const { locale } = Astro.props;
+---
+
+<section class="audit-hero shell" aria-labelledby="audit-title">
+  <div class="audit-hero__copy">
+    <p class="eyebrow"><span class="eyebrow-dot"></span> Free public website check</p>
+    <h1 id="audit-title">Find the issues.<br /><em>Know what to fix next.</em></h1>
+    <p class="audit-hero__intro">Enter your website URL. We check up to 100 public pages listed in its sitemap, look for common technical issues, and show topics and questions found in page headings. We also run a mobile speed report for the URL you entered.</p>
+    <div class="audit-trust-list" aria-label="How the free scan works">
+      <span><b aria-hidden="true">01</b> No account or email</span>
+      <span><b aria-hidden="true">02</b> Up to 100 sitemap URLs</span>
+      <span><b aria-hidden="true">03</b> Google PageSpeed Insights</span>
+    </div>
+  </div>
+
+  <div class="audit-form-card">
+    <div class="audit-form-card__heading">
+      <span class="audit-form-card__icon" aria-hidden="true">↗</span>
+      <div>
+        <p class="eyebrow">Start with your website</p>
+        <h2>Get your free scan</h2>
+      </div>
+    </div>
+    <form id="site-audit-form" class="site-audit-form">
+      <label for="site-audit-url">Website URL</label>
+      <input id="site-audit-url" name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com" maxlength="2048" required />
+      <p class="audit-field-hint">We check up to 100 public pages from the sitemap. Finding it can take up to 15 seconds; each page request has a five-second time limit. In 10 minutes, the free-service limit is two scan starts and 20 page batches per IP address. These limits are not exact and may vary between servers.</p>
+      <label class="audit-permission" for="site-audit-permission">
+        <input id="site-audit-permission" name="permission" type="checkbox" required />
+        <span>I own this website or have permission to audit its public pages.</span>
+      </label>
+      <button id="site-audit-submit" class="button button--lime audit-submit" type="submit">Run my free audit <span aria-hidden="true">↗</span></button>
+      <p class="audit-privacy-note">Google PageSpeed Insights checks only the URL you entered, on mobile. Google may limit how often it can run. We send your URL to Google for this report. Fatorati does not save results from this no-account scan. <a href={localizedPath(locale, 'privacy')}>Read our privacy notice</a>.</p>
+    </form>
+    <div id="site-audit-status" class="audit-status" role="status" aria-live="polite" hidden></div>
+    <progress id="site-audit-progress" class="audit-progress" max="100" value="0" aria-label="Pages scanned" hidden></progress>
+  </div>
+</section>
+
+<section id="site-audit-results" class="audit-results shell" aria-labelledby="audit-results-title" hidden>
+  <div class="audit-results__topline">
+    <div>
+      <p class="eyebrow">Your website snapshot</p>
+      <h2 id="audit-results-title">Audit results</h2>
+    </div>
+    <button id="site-audit-reset" class="audit-reset" type="button">Scan another website</button>
+  </div>
+
+  <div class="audit-score-panel">
+    <div class="audit-score-panel__number" aria-label="Fatorati site check score">
+      <span id="audit-score-value">—</span><small>/100</small>
+    </div>
+    <div class="audit-score-panel__copy">
+      <p id="audit-score-label" class="eyebrow">Fatorati site-check score</p>
+      <h3 id="audit-score-heading">—</h3>
+      <p id="audit-score-summary">—</p>
+      <p class="audit-score-panel__formula">This is a weighted score from the checks below—not a Google ranking score or a prediction of traffic.</p>
+    </div>
+  </div>
+
+  <div class="audit-report-meta">
+    <p id="audit-coverage"></p>
+    <p id="audit-scan-note"></p>
+  </div>
+
+  <section class="audit-pagespeed" aria-labelledby="pagespeed-title">
+    <div class="audit-section-heading">
+      <div>
+        <p class="eyebrow">Google Lighthouse · Mobile</p>
+        <h3 id="pagespeed-title">PageSpeed snapshot</h3>
+      </div>
+      <span id="pagespeed-target" class="audit-target"></span>
+    </div>
+    <div id="pagespeed-scores" class="pagespeed-scores"></div>
+    <div id="pagespeed-metrics" class="pagespeed-metrics"></div>
+    <p id="pagespeed-error" class="audit-provider-note" hidden></p>
+    <div id="pagespeed-issues" class="pagespeed-issues" hidden>
+      <h4>PageSpeed audit items</h4>
+      <ul id="pagespeed-issues-list"></ul>
+    </div>
+  </section>
+
+  <section class="audit-findings" aria-labelledby="findings-title">
+    <div class="audit-section-heading">
+      <div>
+        <p class="eyebrow">Site-wide checks</p>
+        <h3 id="findings-title">Issues and next steps</h3>
+      </div>
+      <span id="audit-finding-count" class="audit-target"></span>
+    </div>
+    <div id="audit-findings-list" class="audit-findings-list"></div>
+  </section>
+
+  <section class="audit-intelligence" aria-labelledby="audit-intelligence-title">
+    <div class="audit-section-heading">
+      <div>
+        <p class="eyebrow">Crawl-derived · early access</p>
+        <h3 id="audit-intelligence-title">Topics and questions in your pages</h3>
+      </div>
+      <span id="audit-intelligence-count" class="audit-target"></span>
+    </div>
+    <p id="audit-intelligence-summary" class="audit-intelligence__summary"></p>
+    <div class="audit-intelligence__columns">
+      <section aria-labelledby="audit-topic-map-title">
+        <h4 id="audit-topic-map-title">Inferred topic-to-page map</h4>
+        <div id="audit-topic-map" class="audit-intelligence__list"></div>
+      </section>
+      <section aria-labelledby="audit-question-map-title">
+        <h4 id="audit-question-map-title">Question patterns in headings</h4>
+        <div id="audit-question-map" class="audit-intelligence__list"></div>
+      </section>
+    </div>
+    <p class="audit-intelligence__caveat">These topics and query patterns are inferred from public page titles and headings—not observed search queries. This pass uses at most 18 H1–H3 headings and reports up to six question patterns per page. Confidence describes the strength of these limited parsing rules, not the probability of search success. This scan has no Search Console, ranking, SERP, demand, volume, difficulty, traffic, or conversion data, and it does not determine whether pages compete.</p>
+  </section>
+
+  <aside class="audit-next-step" aria-labelledby="audit-next-step-title">
+    <div>
+      <p class="eyebrow eyebrow--light">Optional next step</p>
+      <h3 id="audit-next-step-title">Want a deeper SEO workspace?</h3>
+      <p>Semrush may help with keyword research, visibility monitoring, and recurring audits. It does not edit your website or automatically fix scan findings.</p>
+      <p class="audit-affiliate-note">Fatorati does not sell Semrush. This direct link is not affiliate-tracked, and Fatorati does not currently earn commission from it. If an approved affiliate link is added later, we will update the disclosure.</p>
+    </div>
+    <a class="button button--outline" href="https://www.semrush.com/pricing/seo-ai-search/" target="_blank" rel="noopener noreferrer">Explore Semrush plans <span aria-hidden="true">↗</span></a>
+  </aside>
+</section>
+
+<section class="audit-how-it-works shell" aria-labelledby="audit-how-title">
+  <div class="audit-how-it-works__intro">
+    <p class="eyebrow">One scan, three clear stages</p>
+    <h2 id="audit-how-title">One URL in.<br /><em>Evidence to review.</em></h2>
+    <p>Fatorati checks public page basics and turns the findings into practical next steps. You stay in control of what to change and which tools to use.</p>
+    <figure class="audit-how-it-works__image">
+      <img src="/website-audit-editorial.jpg" alt="Illustrative photograph of a laptop with an abstract website-audit dashboard; no live scan data is shown" width="1264" height="843" loading="lazy" decoding="async" />
+      <figcaption><span>Illustrative workspace</span><span>No live scan data</span></figcaption>
+    </figure>
+  </div>
+  <div class="audit-how-it-works__flow">
+    <p class="eyebrow">How the scan works</p>
+    <ol class="audit-how-grid" aria-label="Three stages of the website scan">
+      <li>
+        <span class="audit-how-grid__number" aria-hidden="true">01</span>
+        <div class="audit-how-grid__content">
+          <h3>Find public pages</h3>
+          <p>A sitemap is a public list of website pages. We look for it, then check up to 100 pages from that site.</p>
+        </div>
+      </li>
+      <li>
+        <span class="audit-how-grid__number" aria-hidden="true">02</span>
+        <div class="audit-how-grid__content">
+          <h3>Check page basics</h3>
+          <p>We check page status, security, title, description, headings, preferred page URL, mobile layout, language, indexing settings, and image descriptions. If JSON-LD page data is present, we only check that it is valid JSON. Not having it is not a problem, and we do not test eligibility for special search results.</p>
+        </div>
+      </li>
+      <li>
+        <span class="audit-how-grid__number" aria-hidden="true">03</span>
+        <div class="audit-how-grid__content">
+          <h3>Review the next step</h3>
+          <p>Google PageSpeed Insights checks the URL you entered on mobile. Its speed results are separate from Fatorati’s page-check score.</p>
+        </div>
+      </li>
+    </ol>
+    <p class="audit-how-it-works__note">A bounded snapshot of public pages—not every search, backlink, ranking factor, or a promise of results.</p>
+  </div>
+</section>
+
+<script is:inline src="/site-audit.js"></script>

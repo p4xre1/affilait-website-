@@ -1,0 +1,58 @@
+---
+import LogoMark from '@/components/LogoMark.astro';
+import ThemeToggle from '@/components/ThemeToggle.astro';
+import { localizedPath, type EditionCode } from '@/data/site';
+
+interface Props {
+  locale: EditionCode;
+  routePath?: string;
+}
+
+const { locale, routePath = '' } = Astro.props;
+const navItems = [
+  { label: 'Education', href: localizedPath(locale, 'categories/education'), active: routePath === 'categories/education' },
+  { label: 'About', href: localizedPath(locale, 'about'), active: routePath === 'about' },
+  { label: 'Solutions', href: localizedPath(locale, 'solutions'), active: routePath.startsWith('solutions') },
+  { label: 'Reviews', href: localizedPath(locale, 'reviews'), active: routePath.startsWith('reviews') || routePath.startsWith('tools/semrush') },
+  { label: 'Articles', href: localizedPath(locale, 'articles'), active: routePath.startsWith('articles') },
+];
+---
+<header class="site-header">
+  <div class="header-inner shell">
+    <a class="wordmark" href={localizedPath(locale)} aria-label="Fatorati home">
+      <span class="wordmark-mark" aria-hidden="true">
+        <LogoMark />
+      </span>
+      <span>fatorati<span class="wordmark-period">.</span></span>
+    </a>
+
+    <nav class="primary-nav" aria-label="Main navigation">
+      {navItems.map((item) => (
+        <a href={item.href} class:list={[item.active && 'is-active']} aria-current={item.active ? 'page' : undefined}>{item.label}</a>
+      ))}
+    </nav>
+
+    <div class="header-actions">
+      <ThemeToggle />
+      <a class="header-cta" href={`${localizedPath(locale)}#site-audit-url`}>
+        <span>Free website scan</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </a>
+    </div>
+
+    <details class="mobile-menu">
+      <summary><span>Menu</span><span class="menu-lines" aria-hidden="true"></span></summary>
+      <div class="mobile-menu-panel">
+        <nav aria-label="Mobile navigation">
+          <a href={localizedPath(locale)}>Free website audit</a>
+          {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+          <a href={localizedPath(locale, 'affiliate-disclosure')}>Affiliate disclosure</a>
+        </nav>
+        <ThemeToggle class="theme-toggle--mobile" />
+
+      </div>
+    </details>
+  </div>
+</header>
+
+<script is:inline src="/theme-toggle.js" defer></script>

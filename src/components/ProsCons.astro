@@ -1,0 +1,29 @@
+---
+interface Props {
+  product: string;
+  pros: string[];
+  cons: string[];
+}
+
+const { product, pros, cons } = Astro.props;
+---
+<section class="pros-cons" aria-labelledby="pros-cons-title">
+  <div class="section-heading section-heading--compact">
+    <p class="eyebrow">The trade-offs</p>
+    <h2 id="pros-cons-title">{product}: pros and cons</h2>
+  </div>
+  <div class="pros-cons-grid">
+    <div class="pros-cons-panel pros-panel">
+      <h3><span aria-hidden="true">+</span> What works well</h3>
+      <ul>
+        {pros.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+    <div class="pros-cons-panel cons-panel">
+      <h3><span aria-hidden="true">−</span> Where it falls short</h3>
+      <ul>
+        {cons.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>

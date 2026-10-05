@@ -1,0 +1,93 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArticleCard from '@/components/ArticleCard.astro';
+import SiteAuditTool from '@/components/SiteAuditTool.astro';
+import { absolutePageUrl, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const articles = (await getCollection('articles')).sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+const latestArticles = articles.slice(0, 3);
+const description = 'Free website checks, a clear score, and practical next steps. Scan up to 100 public sitemap pages and get a mobile speed report for the URL you enter.';
+const directAnswer = 'Fatorati checks up to 100 public pages from a website’s sitemap for common technical problems and runs Google PageSpeed Insights on the URL entered, on mobile. The score summarizes these page checks; it is not a Google ranking or a promise of results.';
+const homeFaqItems = [
+  {
+    question: 'What does the free website scan check?',
+    answer: 'We check up to 100 public pages from the site’s sitemap. We look at page status, secure connection, title, description, headings, preferred page URL, mobile setup, language, indexing settings, image descriptions, and whether optional JSON-LD is valid JSON. We do not check whether it qualifies for special search results. Google PageSpeed Insights checks only the URL you enter. A page without JSON-LD is not a problem and does not lower the score.',
+  },
+  {
+    question: 'Is the Fatorati score a Google ranking score?',
+    answer: 'No. The score summarizes only the checks shown in your report. It is not a Google score and cannot predict rankings or traffic. PageSpeed scores are shown separately.',
+  },
+  {
+    question: 'Does Fatorati save the website URL or report?',
+    answer: 'We do not save results from the public no-account scan. The URL you enter is sent to Google for the mobile PageSpeed report. Hosting providers may also process request information, as explained in our privacy notice.',
+  },
+  {
+    question: 'Will Semrush automatically fix the scan findings?',
+    answer: 'No. Semrush can help with keyword research, visibility tracking, and regular audits. It does not edit your website or fix scan findings for you.',
+  },
+  {
+    question: 'Does Fatorati sell Semrush or earn a commission?',
+    answer: 'The current Semrush link goes directly to Semrush and does not track commissions. Fatorati does not sell Semrush or earn a commission from this link. We will clearly label any approved affiliate link added later.',
+  },
+];
+const homeBreadcrumbSchema = [{
+  '@type': 'BreadcrumbList',
+  itemListElement: [{
+    '@type': 'ListItem',
+    position: 1,
+    name: 'Home',
+    item: absolutePageUrl(locale),
+  }],
+}];
+---
+<BaseLayout locale={locale} title="Free Website SEO Audit & Score | Fatorati" description={description} keywords={['free website SEO audit', 'website SEO checker', 'technical SEO scan', 'PageSpeed Insights']} directAnswer={directAnswer} pageSchema={homeBreadcrumbSchema} faqItems={homeFaqItems} speakableSelectors={['#audit-title', '.audit-hero__intro', '.audit-score-panel__copy', '#home-faq-title']}>
+  <SiteAuditTool locale={locale} />
+
+  <section class="audit-content-section shell" aria-labelledby="audit-content-title">
+    <div class="audit-content-section__intro">
+      <p class="eyebrow">Independent by design</p>
+      <h2 id="audit-content-title">Fix the website.<br /><em>Choose tools second.</em></h2>
+      <p>The report shows changes you or your developer can make. Paid SEO tools are optional; they do not make those changes for you.</p>
+    </div>
+    <div class="audit-content-section__note">
+      <span class="audit-content-section__mark" aria-hidden="true">F.</span>
+      <div>
+        <h3>Clear findings. Honest limits.</h3>
+        <p>The sitemap scan is limited to 100 pages. PageSpeed checks only the URL you enter. This scan does not check every search result, backlink, or factor that affects rankings.</p>
+        <a href={localizedPath(locale, 'about')}>How Fatorati works <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-block audit-articles shell" aria-labelledby="latest-title">
+    <div class="section-heading section-heading--split">
+      <div>
+        <p class="eyebrow">Learn what to do next</p>
+        <h2 id="latest-title">Practical SEO notes.<br /><em>Tools with context.</em></h2>
+      </div>
+      <a class="text-link text-link--large" href={localizedPath(locale, 'articles')}>All articles <span aria-hidden="true">↗</span></a>
+    </div>
+    {latestArticles.length > 0 ? (
+      <div class="article-grid article-grid--home">
+        {latestArticles.map((article, index) => <ArticleCard article={article} locale={locale} featured={index === 0} />)}
+      </div>
+    ) : (
+      <div class="empty-editorial"><p>New SEO notes are on the way.</p></div>
+    )}
+  </section>
+
+  <section class="tool-profile-faq home-faq shell" aria-labelledby="home-faq-title">
+    <p class="eyebrow">Clear answers</p>
+    <h2 id="home-faq-title">Before you run an audit</h2>
+    <div class="tool-profile-faq__list">
+      {homeFaqItems.map((item) => (
+        <article class="tool-profile-faq__item">
+          <h3>{item.question}</h3>
+          <p>{item.answer}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

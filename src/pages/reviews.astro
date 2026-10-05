@@ -1,0 +1,55 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const decisionGuide = (await getCollection('articles')).find((article) => article.id === 'is-semrush-worth-it-for-editorial-teams.md');
+const description = 'Read Fatorati’s research-led Semrush profile and decision guide. Clear use cases, trade-offs, and source links—without fabricated scores or hands-on claims.';
+const pageSchema = [{
+  '@type': 'CollectionPage',
+  name: 'Semrush reviews and decision guides',
+  description,
+  inLanguage: edition.language,
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Semrush profile for education and editorial teams', url: `https://fatorati.me/tools/semrush/` },
+      ...(decisionGuide ? [{ '@type': 'ListItem', position: 2, name: decisionGuide.data.title, url: `https://fatorati.me/articles/${decisionGuide.id.replace(/\.md$/, '')}/` }] : []),
+    ],
+  },
+}];
+---
+<BaseLayout locale={locale} title="Semrush reviews & decision guides | Fatorati" description={description} routePath="reviews" keywords={['Semrush review', 'Semrush decision guide', 'SEO tool evaluation']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell reviews-page">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Reviews' }]} />
+    <header class="legal-hero">
+      <p class="eyebrow">Clear evaluations</p>
+      <h1>Know the trade-offs.<br /><em>Choose with context.</em></h1>
+      <p class="legal-hero__intro">Our Semrush coverage is research-led and built around practical workflows. We distinguish public product information from our editorial judgment—and do not invent scores or claim testing we have not done.</p>
+    </header>
+
+    <section class="review-list-grid" aria-label="Semrush evaluations">
+      <a class="review-list-card review-list-card--featured" href={localizedPath(locale, 'tools/semrush')}>
+        <span class="review-list-card__eyebrow">TOOL PROFILE / PUBLIC DOCUMENTATION</span>
+        <h2>Semrush for education &amp; editorial teams</h2>
+        <p>See where the toolkit may fit, compare it with a simpler workflow, and follow links to official product information.</p>
+        <span class="review-list-card__meta">No hands-on score · Current plans linked at source</span>
+        <span class="review-list-card__link">View the Semrush profile <span aria-hidden="true">↗</span></span>
+      </a>
+      {decisionGuide && (
+        <a class="review-list-card" href={localizedPath(locale, `articles/${decisionGuide.id.replace(/\.md$/, '')}`)}>
+          <span class="review-list-card__eyebrow">DECISION GUIDE / {decisionGuide.data.readTime} MIN READ</span>
+          <h2>{decisionGuide.data.title}</h2>
+          <p>{decisionGuide.data.description}</p>
+          <span class="review-list-card__meta">Research-led · Best for recurring editorial research</span>
+          <span class="review-list-card__link">Read the decision guide <span aria-hidden="true">↗</span></span>
+        </a>
+      )}
+    </section>
+
+    <p class="review-method-note">Our approach: check primary sources, show the relevant caveats, and tell you when an evaluation is not based on hands-on testing. <a href={localizedPath(locale, 'about')}>Read our editorial standards.</a></p>
+  </article>
+</BaseLayout>

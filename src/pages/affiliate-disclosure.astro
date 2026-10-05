@@ -1,0 +1,40 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { getEdition, localizedPath } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const description = 'Fatorati’s current Semrush links are direct and not affiliate-tracked. Read how any future approved affiliate links will be identified.';
+const pageSchema = [{ '@type': 'WebPage', name: 'Fatorati affiliate disclosure', inLanguage: edition.language }];
+---
+<BaseLayout locale={locale} title="Affiliate disclosure | Fatorati" description={description} routePath="affiliate-disclosure" keywords={['affiliate disclosure', 'commission policy', 'editorial independence']} pageSchema={pageSchema} speakableSelectors={['.legal-hero h1', '.legal-hero__intro']}>
+  <article class="legal-page shell">
+    <Breadcrumbs items={[{ label: 'Home', href: localizedPath(locale) }, { label: 'Affiliate disclosure' }]} />
+    <header class="legal-hero legal-hero--compact">
+      <p class="eyebrow">How this site is supported</p>
+      <h1>Good to know<br /><em>before you click.</em></h1>
+      <p class="legal-hero__intro">We believe guidance is more useful when you know how it is funded. Here is the straightforward version.</p>
+      <p class="policy-updated">Last updated: <time datetime="2026-10-04">October 4, 2026</time></p>
+    </header>
+
+    <div class="legal-content-grid">
+      <aside class="legal-side-note"><span class="legal-side-note__mark">↗</span><p>Commercial links, clearly marked.</p></aside>
+      <div class="prose legal-prose">
+        <h2>Our current link status</h2>
+        <p>Fatorati does not currently use an approved Semrush affiliate link and does not earn commission from its Semrush links. Those links go directly to official Semrush pages without affiliate tracking identifiers.</p>
+        <p>If an approved affiliate link is added in the future, we will identify it clearly beside the link and update this page. Any commercial relationship attributes will be used only for a link that is actually affiliate-tracked. Source links and further reading are provided for reference, not as endorsements.</p>
+        <p>We will not add a tracking URL or imply that a commission is being earned before an affiliate destination is approved. Approval, program terms, and qualifying actions must be verified before any such link is published.</p>
+
+        <h2>Our future affiliate policy</h2>
+        <p>If an approved affiliate relationship is introduced, a commission will not buy a place in a comparison, change an editorial conclusion, or guarantee a positive mention. Our guidance is based on the needs described in each article and the evidence available to us. We aim to explain the reasons and drawbacks so you can decide for yourself.</p>
+
+        <h2>How to read our guidance</h2>
+        <p>A highlighted approach is a starting point, not a promise that the same workflow or tool is right for everyone. Consider your team's needs, check the provider's current feature and plan information, and review the terms before subscribing. Product details can change after a guide is published.</p>
+
+        <h2>Questions about a link?</h2>
+        <p>If you would like to ask about a particular link or our editorial approach, contact <a href="mailto:hello@fatorati.me?subject=Affiliate%20link%20question">hello@fatorati.me</a>. We will be clear about commercial relationships and correct a disclosure if one is missing.</p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

@@ -1,0 +1,82 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArticleCard from '@/components/ArticleCard.astro';
+import CategoryCard from '@/components/CategoryCard.astro';
+import { CATEGORIES, absolutePageUrl, getEdition } from '@/data/site';
+
+const locale = 'en' as const;
+const edition = getEdition(locale);
+const articles = (await getCollection('articles')).sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+const counts = Object.fromEntries(CATEGORIES.map((category) => [
+  category.slug,
+  articles.filter((article) => article.data.category === category.slug).length,
+]));
+const description = 'Browse Fatorati SEO tutorials and independent Semrush guides for education teams, editors, and content publishers.';
+const pageSchema = [{
+  '@type': 'CollectionPage',
+  name: 'SEO guides and Semrush tutorials',
+  description,
+  inLanguage: edition.language,
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: articles.map((article, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: article.data.title,
+      url: absolutePageUrl(locale, `articles/${article.id.replace(/\.md$/, '')}`),
+    })),
+  },
+}];
+---
+<BaseLayout locale={locale} title="SEO guides & Semrush tutorials | Fatorati" description={description} routePath="articles" keywords={['Semrush tutorials', 'SEO education', 'editorial workflow']} pageSchema={pageSchema} directAnswer={description} speakableSelectors={['.page-hero h1', '.page-hero__copy > p:last-child']}>
+  <div class="page-hero shell page-hero--library">
+    <div class="page-hero__copy">
+      <p class="eyebrow">The Fatorati learning library</p>
+      <h1>Learn the method.<br /><em>Keep your judgment.</em></h1>
+      <p>Browse Semrush tutorials, education SEO lessons, and editorial workflows built around useful research—not just tool scores.</p>
+    </div>
+    <div class="page-hero__aside" aria-hidden="true">
+      <span class="aside-number">{String(articles.length).padStart(2, '0')}</span>
+      <span class="aside-label">guides, with<br />the caveats included</span>
+      <span class="aside-line"></span>
+    </div>
+  </div>
+
+  <section class="library-section shell" aria-label="Article library">
+    <div class="library-toolbar">
+      <label class="search-field">
+        <span class="search-field__icon" aria-hidden="true">⌕</span>
+        <span class="visually-hidden">Search guides</span>
+        <input type="search" placeholder="Search SEO guides and workflows" autocomplete="off" data-article-search />
+        <kbd>Ctrl/⌘ K</kbd>
+      </label>
+      <div class="library-toolbar__meta">
+        <p class="library-count" data-results-count>{articles.length} {articles.length === 1 ? 'guide' : 'guides'}</p>
+        <a class="feed-link" href="/feed.xml">Subscribe to RSS</a>
+      </div>
+    </div>
+    {articles.length > 0 ? (
+      <div class="article-grid article-grid--library" data-article-list>
+        {articles.map((article, index) => <ArticleCard article={article} locale={locale} featured={index === 0} />)}
+      </div>
+    ) : (
+      <div class="empty-editorial"><p>New guides are coming soon. Check back for the first field notes.</p></div>
+    )}
+    <p class="search-empty" data-search-empty hidden>No guides match that search yet. Try a different word or browse the categories below.</p>
+  </section>
+
+  <section class="category-section category-section--library" id="categories" aria-labelledby="library-categories-title">
+    <div class="shell">
+      <div class="section-heading section-heading--split">
+        <div><p class="eyebrow">Browse by subject</p><h2 id="library-categories-title">Find your <em>corner.</em></h2></div>
+        <p class="section-intro">Choose a path for your team: SEO tool learning, education search, or editorial planning.</p>
+      </div>
+      <div class="category-grid">
+        {CATEGORIES.map((category) => <CategoryCard category={category} locale={locale} count={counts[category.slug] ?? 0} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline src="/article-search.js" defer></script>

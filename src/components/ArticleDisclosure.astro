@@ -1,0 +1,13 @@
+---
+import { localizedPath, type EditionCode } from '@/data/site';
+
+interface Props {
+  locale: EditionCode;
+}
+
+const { locale } = Astro.props;
+---
+<p class="article-disclosure">
+  <span class="disclosure-mark" aria-hidden="true">i</span>
+  <span><strong>Link note:</strong> Semrush links in this guide go directly to official pages and are not affiliate-tracked. Fatorati does not currently earn commission from them. <a href={localizedPath(locale, 'affiliate-disclosure')}>Read our disclosure</a>.</span>
+</p>

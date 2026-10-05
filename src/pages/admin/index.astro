@@ -1,0 +1,253 @@
+---
+import '../../styles/global.css';
+import LogoMark from '@/components/LogoMark.astro';
+import ThemeToggle from '@/components/ThemeToggle.astro';
+---
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <script is:inline src="/theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Editorial dashboard | Fatorati</title>
+  </head>
+  <body>
+    <header class="admin-topbar">
+      <a class="admin-wordmark" href="/" aria-label="Fatorati home">
+        <span class="admin-wordmark__mark"><LogoMark /></span>
+        <span>fatorati<span class="admin-wordmark__period">.</span></span>
+      </a>
+      <div class="admin-topbar__actions">
+        <a class="admin-back-link" href="/">View site <span aria-hidden="true">↗</span></a>
+        <ThemeToggle />
+      </div>
+    </header>
+
+    <main class="admin-main" id="main-content">
+      <div class="admin-heading">
+        <div>
+          <p class="eyebrow">Editorial workspace</p>
+          <h1>Content dashboard</h1>
+          <p class="admin-heading__copy">Manage Markdown articles in the Fatorati repository. Publishing commits your changes to the configured branch.</p>
+        </div>
+        <span class="admin-access-badge"><span aria-hidden="true"></span> Protected by Cloudflare Access</span>
+      </div>
+
+      <aside class="admin-security-note" aria-label="Security information">
+        <strong>Private by design.</strong>
+        <span>This dashboard has no local password form and stores no credentials in the browser. Cloudflare Access controls who can enter; the server keeps the GitHub token.</span>
+      </aside>
+
+      <section class="admin-workspace" aria-label="Article editor">
+        <aside class="admin-library" aria-labelledby="library-title">
+          <div class="admin-library__heading">
+            <div>
+              <h2 id="library-title">Articles</h2>
+              <p id="article-count">Loading library…</p>
+            </div>
+            <div class="admin-library__actions">
+              <button class="admin-button admin-button--quiet" id="refresh-articles" type="button">Refresh</button>
+              <button class="admin-button admin-button--quiet" id="new-article" type="button">New article</button>
+            </div>
+          </div>
+          <div class="admin-library__status" id="library-status" role="status" aria-live="polite"></div>
+          <nav class="admin-article-list" id="article-list" aria-label="Saved articles"></nav>
+        </aside>
+
+        <section class="admin-editor" aria-labelledby="editor-title">
+          <div class="admin-editor__heading">
+            <div>
+              <p class="eyebrow">Markdown source</p>
+              <h2 id="editor-title">Choose an article</h2>
+            </div>
+            <span class="admin-editor__revision" id="revision-state">Not loaded</span>
+          </div>
+
+          <form id="article-form">
+            <div class="admin-form-meta">
+              <label class="admin-field admin-field--slug" for="article-slug">
+                <span>Article slug</span>
+                <input id="article-slug" name="slug" type="text" autocomplete="off" spellcheck="false" pattern="[a-z0-9]+(-[a-z0-9]+)*" minlength="2" maxlength="80" placeholder="example-article-title" required readonly />
+                <small>Lowercase letters, numbers, and hyphens. Slugs cannot be renamed after creation.</small>
+              </label>
+              <div class="admin-save-area">
+                <button class="admin-button admin-button--primary" id="save-article" type="submit" disabled>Commit &amp; publish</button>
+                <small>Changes are committed directly to the configured branch.</small>
+              </div>
+            </div>
+
+            <label class="admin-field admin-field--source" for="article-source">
+              <span>Article Markdown</span>
+              <textarea id="article-source" name="content" rows="32" spellcheck="true" autocapitalize="sentences" aria-describedby="editor-help" placeholder="Select an article, or create a new one." disabled></textarea>
+              <small id="editor-help">Edit the YAML frontmatter and article body. Before publishing, the server checks required fields, comparison data, pros and cons, HTTPS links, and the article structure.</small>
+            </label>
+            <p class="admin-editor-status" id="editor-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <details class="admin-requirements">
+            <summary>What the article template requires</summary>
+            <ul>
+              <li>Valid YAML frontmatter with title, 50–180 character description, category, dates, reading time, short answer, and top pick.</li>
+              <li>At least two comparison options, two pros, two cons, and an HTTPS external product link.</li>
+              <li>Useful Markdown article body. A note about the current non-affiliate Semrush links is inserted automatically by the article template.</li>
+              <li>Sources are optional, but should be primary or otherwise reliable where possible.</li>
+            </ul>
+          </details>
+        </section>
+      </section>
+
+      <p class="admin-deploy-note">A successful save creates a GitHub commit. Cloudflare Pages will publish the refreshed static site when the repository build integration is enabled.</p>
+    </main>
+
+    <footer class="admin-footer">
+      <span>Fatorati editorial tools</span>
+      <a href="/privacy/">Privacy</a>
+      <a href="/affiliate-disclosure/">Affiliate disclosure</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .admin-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 82px;
+    padding: 12px max(28px, calc((100% - 1220px) / 2));
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-white);
+  }
+
+  .admin-wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-deep);
+    font-size: 25px;
+    font-weight: 750;
+    letter-spacing: -0.25px;
+    text-decoration: none;
+  }
+
+  .admin-wordmark__mark { width: 35px; color: #163f34; }
+  .admin-wordmark__period { color: var(--coral); }
+  .admin-topbar__actions { display: flex; align-items: center; gap: 18px; }
+  .admin-back-link { color: var(--muted); font-size: 16px; font-weight: 650; text-decoration: none; }
+  .admin-back-link:hover { color: var(--ink); }
+
+  .admin-main { width: min(calc(100% - 48px), 1300px); margin: 0 auto; padding: 54px 0 64px; }
+  .admin-heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 24px; }
+  .admin-heading h1 { margin: 6px 0 8px; color: var(--ink-deep); font-family: var(--display); font-size: clamp(2.2rem, 4vw, 3.35rem); letter-spacing: -0.25px; line-height: 1.08; }
+  .admin-heading__copy { max-width: 670px; margin: 0; color: var(--muted); }
+  .admin-access-badge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 9px; margin-bottom: 5px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-white); color: var(--ink-soft); font-size: 16px; font-weight: 700; }
+  .admin-access-badge > span { width: 8px; height: 8px; border-radius: 50%; background: #438456; box-shadow: 0 0 0 3px rgba(67, 132, 86, .13); }
+
+  .admin-security-note { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 24px; padding: 14px 17px; border: 1px solid #d6e2cb; border-radius: 12px; background: #f2f7eb; color: #3d5140; font-size: 16px; line-height: 1.55; }
+  .admin-security-note strong { color: #203d2b; }
+  .admin-workspace { display: grid; grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.7fr); align-items: start; gap: 22px; }
+  .admin-library, .admin-editor { min-width: 0; border: 1px solid var(--line); border-radius: 15px; background: var(--paper-white); box-shadow: 0 12px 34px rgba(22, 44, 36, .045); }
+  .admin-library { position: sticky; top: 22px; padding: 20px; }
+  .admin-library__heading, .admin-editor__heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .admin-library__heading { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .admin-library__actions { display: flex; gap: 7px; }
+  .admin-library__heading h2, .admin-editor__heading h2 { margin: 0; color: var(--ink-deep); font-family: var(--display); font-size: 23px; letter-spacing: -0.25px; }
+  .admin-library__heading p { margin: 3px 0 0; color: var(--muted); font-size: 16px; }
+  .admin-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 8px; padding: 8px 13px; font-size: 16px; font-weight: 750; cursor: pointer; transition: transform .15s ease, background-color .15s ease; }
+  .admin-button:hover:not(:disabled) { transform: translateY(-1px); }
+  .admin-button:disabled { cursor: not-allowed; opacity: .56; }
+  .admin-button--quiet { border-color: var(--line); background: var(--paper); color: var(--ink); white-space: nowrap; }
+  .admin-button--quiet:hover:not(:disabled) { background: var(--paper-warm); }
+  .admin-button--primary { background: #1d4437; color: #fff; }
+  .admin-button--primary:hover:not(:disabled) { background: #285947; }
+  .admin-library__status:empty { display: none; }
+  .admin-library__status { margin: 12px 0; color: var(--muted); font-size: 16px; }
+  .admin-article-list { display: grid; gap: 7px; max-height: 65vh; overflow: auto; padding-top: 13px; }
+  .admin-article-item { display: grid; gap: 5px; width: 100%; border: 1px solid transparent; border-radius: 9px; padding: 12px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+  .admin-article-item:hover { border-color: var(--line); background: var(--paper); }
+  .admin-article-item[aria-current="true"] { border-color: #b6c9b7; background: #f0f5ef; }
+  .admin-article-item__title { font-size: 16px; font-weight: 750; line-height: 1.4; }
+  .admin-article-item__meta { color: var(--muted); font-size: 16px; }
+  .admin-list-empty { padding: 22px 8px; color: var(--muted); font-size: 16px; text-align: center; }
+
+  .admin-editor { padding: 24px; }
+  .admin-editor__heading { margin-bottom: 21px; }
+  .admin-editor__heading .eyebrow { margin: 0 0 4px; font-size: 16px; }
+  .admin-editor__revision { border-radius: 999px; padding: 5px 9px; background: var(--paper-warm); color: var(--muted); font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .admin-form-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 16px; margin-bottom: 19px; }
+  .admin-field { display: grid; gap: 7px; color: var(--ink); font-size: 16px; font-weight: 730; }
+  .admin-field input, .admin-field textarea { width: 100%; border: 1px solid #bdcbc2; border-radius: 9px; background: var(--paper); color: var(--ink-deep); font-size: 16px; }
+  .admin-field input { min-height: 43px; padding: 9px 12px; }
+  .admin-field input:read-only { background: var(--paper-warm); color: var(--muted); }
+  .admin-field textarea { min-height: 680px; resize: vertical; padding: 15px; font: 16px/1.65 var(--sans); tab-size: 2; }
+  .admin-field textarea:disabled { opacity: .7; }
+  .admin-field small, .admin-save-area small { color: var(--muted); font-size: 16px; font-weight: 450; line-height: 1.45; }
+  .admin-save-area { display: grid; justify-items: end; gap: 7px; padding-top: 25px; text-align: right; }
+  .admin-field--source { gap: 8px; }
+  .admin-editor-status { min-height: 22px; margin: 12px 0 0; color: var(--muted); font-size: 16px; }
+  .admin-editor-status[data-state="success"] { color: #28663b; }
+  .admin-editor-status[data-state="error"] { color: #a63a2b; }
+  .admin-requirements { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 15px; color: var(--muted); font-size: 16px; }
+  .admin-requirements summary { color: var(--ink-soft); font-weight: 700; cursor: pointer; }
+  .admin-requirements ul { display: grid; gap: 8px; margin-bottom: 0; padding-left: 22px; }
+  .admin-deploy-note { margin: 22px 0 0; color: var(--muted); font-size: 16px; text-align: center; }
+  .admin-footer { display: flex; justify-content: center; gap: 20px; border-top: 1px solid var(--line); padding: 20px 24px 28px; color: var(--muted); font-size: 16px; }
+  .admin-footer a { text-decoration: none; }
+
+  :global(:root[data-theme="dark"]) .admin-topbar,
+  :global(:root[data-theme="dark"]) .admin-library,
+  :global(:root[data-theme="dark"]) .admin-editor { background: #142019; }
+  :global(:root[data-theme="dark"]) .admin-wordmark,
+  :global(:root[data-theme="dark"]) .admin-heading h1,
+  :global(:root[data-theme="dark"]) .admin-library__heading h2,
+  :global(:root[data-theme="dark"]) .admin-editor__heading h2 { color: #f0f6f0; }
+  :global(:root[data-theme="dark"]) .admin-security-note { border-color: #45553e; background: #1c2b20; color: #c7d5c8; }
+  :global(:root[data-theme="dark"]) .admin-security-note strong { color: #ecf5de; }
+  :global(:root[data-theme="dark"]) .admin-access-badge,
+  :global(:root[data-theme="dark"]) .admin-editor__revision { background: #1d2b23; color: #d3e0d6; }
+  :global(:root[data-theme="dark"]) .admin-button--quiet { border-color: var(--line); background: #1b2a22; color: #e8f0e9; }
+  :global(:root[data-theme="dark"]) .admin-button--quiet:hover:not(:disabled) { background: #26362b; }
+  :global(:root[data-theme="dark"]) .admin-button--primary { background: #c9e88c; color: #18352d; }
+  :global(:root[data-theme="dark"]) .admin-article-item { color: #e4ece5; }
+  :global(:root[data-theme="dark"]) .admin-article-item:hover { border-color: #405246; background: #1b2a22; }
+  :global(:root[data-theme="dark"]) .admin-article-item[aria-current="true"] { border-color: #50634f; background: #203126; }
+  :global(:root[data-theme="dark"]) .admin-field input,
+  :global(:root[data-theme="dark"]) .admin-field textarea { border-color: #4b5b50; background: #101a14; color: #e8f0e9; }
+  :global(:root[data-theme="dark"]) .admin-field input:read-only { background: #1b2921; }
+  :global(:root[data-theme="dark"]) .admin-editor-status[data-state="success"] { color: #a7d7ac; }
+  :global(:root[data-theme="dark"]) .admin-editor-status[data-state="error"] { color: #ffb4a7; }
+  :global(:root[data-theme="dark"]) .admin-requirements summary { color: #d8e5dc; }
+
+  @media (max-width: 880px) {
+    .admin-heading { align-items: start; flex-direction: column; }
+    .admin-workspace { grid-template-columns: 1fr; }
+    .admin-library { position: static; }
+    .admin-article-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 320px; }
+    .admin-field textarea { min-height: 600px; }
+  }
+  @media (max-width: 560px) {
+    .admin-topbar { min-height: 70px; padding-inline: 18px; }
+    .admin-main { width: min(calc(100% - 28px), 1300px); padding-top: 35px; }
+    .admin-wordmark { font-size: 21px; }
+    .admin-wordmark__mark { width: 31px; }
+    .admin-topbar__actions { gap: 10px; }
+    .admin-back-link { font-size: 16px; }
+    .admin-access-badge { font-size: 16px; }
+    .admin-library, .admin-editor { padding: 16px; }
+    .admin-library__heading { align-items: start; flex-direction: column; }
+    .admin-library__actions { width: 100%; }
+    .admin-library__actions .admin-button { flex: 1; }
+    .admin-article-list { grid-template-columns: 1fr; }
+    .admin-form-meta { grid-template-columns: 1fr; }
+    .admin-save-area { justify-items: stretch; padding-top: 0; text-align: left; }
+    .admin-save-area .admin-button { width: 100%; }
+    .admin-editor__heading { align-items: start; flex-direction: column; }
+    .admin-field textarea { min-height: 480px; }
+    .admin-footer { flex-wrap: wrap; gap: 12px 18px; }
+  }
+</style>
+
+<script src="../../scripts/admin.ts"></script>

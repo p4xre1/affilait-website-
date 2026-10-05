@@ -1,0 +1,27 @@
+---
+import '../styles/global.css';
+import SiteHeader from '@/components/SiteHeader.astro';
+import SiteFooter from '@/components/SiteFooter.astro';
+import { localizedPath } from '@/data/site';
+---
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#f4f4ed" />
+    <title>Page not found | Fatorati</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <SiteHeader locale="en" />
+    <main id="main-content" class="not-found shell">
+      <p class="eyebrow">A wrong turn / 404</p>
+      <h1>This page took<br /><em>a different route.</em></h1>
+      <p>That link may have moved, or it may never have existed. Let's get you back to a useful guide.</p>
+      <a class="button button--dark" href={localizedPath('en', 'articles')}>Browse the articles <span aria-hidden="true">↗</span></a>
+    </main>
+    <SiteFooter locale="en" />
+  </body>
+</html>
